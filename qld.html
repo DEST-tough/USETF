@@ -1745,15 +1745,43 @@ document.querySelectorAll('#wfaRows').forEach(el => barObs.observe(el));
 
 // ── 실시간 데이터 로딩 ──────────────────────────────────────────
 
-const PROXY = 'https://corsproxy.io/?';
 const YF_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+
+// 프록시 목록 — 순서대로 시도, 성공하면 중단
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
+
+// 프록시 폴백 fetch
+async function fetchWithFallback(yfUrl) {
+  let lastErr;
+  for (const makeProxy of PROXIES) {
+    try {
+      const res = await fetch(makeProxy(yfUrl), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      // allorigins는 {contents: "..."} 형태로 감싸는 경우 있음
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.contents) return JSON.parse(parsed.contents);
+        return parsed;
+      } catch {
+        return JSON.parse(text);
+      }
+    } catch (e) {
+      lastErr = e;
+      console.warn('프록시 실패, 다음 시도:', e.message);
+    }
+  }
+  throw lastErr;
+}
 
 // 야후 파이낸스에서 일봉 N개 가져오기
 async function fetchYF(symbol, range = '1y', interval = '1d') {
   const url = `${YF_BASE}${symbol}?range=${range}&interval=${interval}&includeAdjustedClose=true`;
-  const res  = await fetch(PROXY + encodeURIComponent(url));
-  if (!res.ok) throw new Error(`fetch ${symbol} failed`);
-  const data = await res.json();
+  const data  = await fetchWithFallback(url);
   const chart = data.chart.result[0];
   const closes = chart.indicators.adjclose?.[0]?.adjclose || chart.indicators.quote[0].close;
   return { timestamps: chart.timestamp, closes };
