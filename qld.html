@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QLD DCA 전략 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy:    #0A1628;
+    --navy2:   #0F2044;
+    --blue:    #1B4FD8;
+    --blue2:   #2563EB;
+    --accent:  #38BDF8;
+    --gold:    #F59E0B;
+    --green:   #10B981;
+    --red:     #EF4444;
+    --muted:   #94A3B8;
+    --surface: #111C35;
+    --surface2:#162040;
+    --border:  rgba(56,189,248,0.15);
+    --text:    #E2E8F0;
+    --subtext: #94A3B8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── 배경 격자 ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 56px 48px 48px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(27,79,216,0.12) 0%, transparent 100%);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(56,189,248,0.1);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .logo-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  h1.main-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 400;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  h1.main-title span {
+    color: var(--accent);
+  }
+
+  .header-meta {
+    font-size: 13px;
+    color: var(--subtext);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+
+  .strategy-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 24px;
+    white-space: nowrap;
+  }
+
+  .ratio-pill {
+    display: flex;
+    height: 36px;
+    border-radius: 6px;
+    overflow: hidden;
+    width: 120px;
+    flex-shrink: 0;
+  }
+
+  .ratio-v7 {
+    background: var(--blue2);
+    width: 30%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .ratio-v9 {
+    background: var(--accent);
+    width: 70%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .strategy-label { font-size: 13px; color: var(--subtext); }
+  .strategy-value { font-size: 15px; font-weight: 600; color: #fff; }
+
+  /* ── 네비게이션 ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,22,40,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  nav a {
+    display: block;
+    padding: 16px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--subtext);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  nav a:hover, nav a.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── 메인 레이아웃 ── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 48px 48px 96px;
+  }
+
+  section {
+    margin-bottom: 72px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+
+  h2.section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── KPI 카드 ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56,189,248,0.35);
+  }
+
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+
+  .kpi-card.green::after { background: var(--green); }
+  .kpi-card.gold::after  { background: var(--gold); }
+  .kpi-card.red::after   { background: var(--red); }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--subtext);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .kpi-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi-value.pos { color: var(--green); }
+  .kpi-value.neg { color: var(--red); }
+  .kpi-value.acc { color: var(--accent); }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--subtext);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .kpi-delta {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .kpi-delta.pos { background: rgba(16,185,129,0.15); color: var(--green); }
+  .kpi-delta.neg { background: rgba(239,68,68,0.15);  color: var(--red); }
+
+  /* ── 비교 테이블 ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+  }
+
+  .compare-table th {
+    background: var(--surface2);
+    color: var(--subtext);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .compare-table th:first-child { text-align: left; border-radius: 8px 0 0 0; }
+  .compare-table th:last-child  { border-radius: 0 8px 0 0; }
+
+  .compare-table td {
+    padding: 14px 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(56,189,248,0.06);
+    background: var(--surface);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    transition: background 0.15s;
+  }
+
+  .compare-table td:first-child {
+    text-align: left;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .compare-table tr:hover td { background: var(--surface2); }
+
+  .compare-table tr.highlight td {
+    background: rgba(27,79,216,0.15);
+    border-bottom-color: rgba(56,189,248,0.12);
+  }
+
+  .compare-table tr.highlight td:first-child {
+    border-left: 2px solid var(--accent);
+  }
+
+  .tag-pos { color: var(--green); font-weight: 600; }
+  .tag-neg { color: var(--red);   font-weight: 600; }
+  .tag-acc { color: var(--accent); font-weight: 600; }
+  .tag-gold { color: var(--gold); font-weight: 600; }
+
+  /* ── 차트 컨테이너 ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .chart-card.full { grid-column: 1 / -1; }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--subtext);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .chart-title::before {
+    content: '';
+    width: 3px; height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── 워크포워드 바 ── */
+  .wfa-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 100px 100px 40px;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+
+  .wfa-row:hover { border-color: rgba(56,189,248,0.3); }
+
+  .wfa-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .wfa-period { font-size: 12px; color: var(--subtext); }
+
+  .bar-wrap {
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: visible;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    position: relative;
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    min-width: 3px;
+  }
+
+  .bar-fill.pos { background: linear-gradient(90deg, var(--green), rgba(16,185,129,0.6)); }
+  .bar-fill.neg { background: linear-gradient(90deg, var(--red),   rgba(239,68,68,0.6)); }
+
+  .wfa-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .wfa-badge {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+
+  .wfa-badge.win  { background: rgba(16,185,129,0.15); color: var(--green); }
+  .wfa-badge.lose { background: rgba(239,68,68,0.15);  color: var(--red); }
+
+  /* ── 레짐 가이드 ── */
+  .regime-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .regime-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    border-top: 3px solid transparent;
+    transition: transform 0.2s;
+  }
+
+  .regime-card:hover { transform: translateY(-2px); }
+  .regime-card.bull    { border-top-color: var(--green); }
+  .regime-card.neutral { border-top-color: var(--gold); }
+  .regime-card.caution { border-top-color: #F97316; }
+  .regime-card.prebear { border-top-color: #EF4444; }
+  .regime-card.bear    { border-top-color: #991B1B; }
+
+  .regime-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+
+  .regime-card.bull    .regime-icon { background: rgba(16,185,129,0.15); }
+  .regime-card.neutral .regime-icon { background: rgba(245,158,11,0.15); }
+  .regime-card.caution .regime-icon { background: rgba(249,115,22,0.15); }
+  .regime-card.prebear .regime-icon { background: rgba(239,68,68,0.15); }
+  .regime-card.bear    .regime-icon { background: rgba(153,27,27,0.2); }
+
+  .regime-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .regime-card.bull    .regime-name { color: var(--green); }
+  .regime-card.neutral .regime-name { color: var(--gold); }
+  .regime-card.caution .regime-name { color: #F97316; }
+  .regime-card.prebear .regime-name { color: #EF4444; }
+  .regime-card.bear    .regime-name { color: #FCA5A5; }
+
+  .regime-shares {
+    font-family: 'DM Mono', monospace;
+    font-size: 24px;
+    font-weight: 500;
+    color: #fff;
+    margin: 10px 0 4px;
+  }
+
+  .regime-desc {
+    font-size: 12px;
+    color: var(--subtext);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .regime-condition {
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.6;
+  }
+
+  /* ── 파라미터 테이블 ── */
+  .param-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 800px) { .param-grid { grid-template-columns: 1fr; } }
+
+  .param-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .param-card-header {
+    background: var(--surface2);
+    padding: 14px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .param-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 20px;
+    border-bottom: 1px solid rgba(56,189,248,0.05);
+    gap: 16px;
+  }
+
+  .param-row:last-child { border-bottom: none; }
+
+  .param-key {
+    font-size: 13px;
+    color: var(--subtext);
+    flex: 1;
+  }
+
+  .param-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* ── 신호 설명 카드 ── */
+  .signal-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .signal-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+  }
+
+  .step-num {
+    position: absolute;
+    top: -12px; left: 24px;
+    background: var(--blue);
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .step-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    margin-top: 4px;
+  }
+
+  .step-body {
+    font-size: 13px;
+    color: var(--subtext);
+    line-height: 1.6;
+  }
+
+  .step-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    color: var(--accent);
+    line-height: 1.7;
+  }
+
+  /* ── 인포 박스 ── */
+  .info-box {
+    background: rgba(27,79,216,0.1);
+    border: 1px solid rgba(27,79,216,0.3);
+    border-left: 3px solid var(--blue2);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 13px;
+    color: var(--subtext);
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .info-box strong { color: var(--text); }
+
+  /* ── 반응형 ── */
+  @media (max-width: 768px) {
+    header, main { padding-left: 20px; padding-right: 20px; }
+    nav { padding: 0 20px; }
+    .chart-grid { grid-template-columns: 1fr; }
+    .wfa-row { grid-template-columns: 80px 1fr 80px 30px; }
+    .wfa-val { display: none; }
+  }
+
+  /* ── 페이드인 애니메이션 ── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-up:nth-child(1) { animation-delay: 0.05s; }
+  .fade-up:nth-child(2) { animation-delay: 0.10s; }
+  .fade-up:nth-child(3) { animation-delay: 0.15s; }
+  .fade-up:nth-child(4) { animation-delay: 0.20s; }
+  .fade-up:nth-child(5) { animation-delay: 0.25s; }
+  .fade-up:nth-child(6) { animation-delay: 0.30s; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 48px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── 매수 가이드 ── */
+  .buy-matrix { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+  .buy-matrix th { background:var(--surface2); color:var(--subtext); font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:12px 16px; text-align:center; border-bottom:1px solid var(--border); }
+  .buy-matrix th:first-child { text-align:left; border-radius:8px 0 0 0; }
+  .buy-matrix th:last-child  { border-radius:0 8px 0 0; }
+  .buy-matrix td { padding:13px 16px; text-align:center; border-bottom:1px solid rgba(56,189,248,0.06); background:var(--surface); font-family:'DM Mono',monospace; font-size:13px; }
+  .buy-matrix td:first-child { text-align:left; font-family:'Pretendard',sans-serif; font-weight:500; }
+  .buy-matrix tr:hover td { background:var(--surface2); }
+  .buy-matrix tr.total-row td { background:rgba(27,79,216,0.18); font-weight:700; font-size:14px; border-top:1px solid rgba(56,189,248,0.2); }
+  .shares-pill { display:inline-flex; align-items:center; justify-content:center; min-width:52px; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+  .shares-pill.zero  { background:rgba(239,68,68,0.15);  color:#FCA5A5; }
+  .shares-pill.low   { background:rgba(245,158,11,0.15); color:var(--gold); }
+  .shares-pill.mid   { background:rgba(56,189,248,0.15); color:var(--accent); }
+  .shares-pill.high  { background:rgba(16,185,129,0.15); color:var(--green); }
+  .shares-pill.max   { background:rgba(16,185,129,0.28); color:#6EE7B7; border:1px solid rgba(16,185,129,0.35); }
+
+  /* ── 계산기 ── */
+  .calc-wrap { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:36px; margin-top:24px; }
+  .calc-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:28px; display:flex; align-items:center; gap:10px; }
+  .calc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+  .calc-field label { display:block; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--subtext); margin-bottom:8px; }
+  .calc-field select, .calc-field input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:11px 14px; color:#fff; font-family:'DM Mono',monospace; font-size:13px; outline:none; transition:border-color 0.2s; -webkit-appearance:none; }
+  .calc-field select:focus, .calc-field input:focus { border-color:var(--accent); }
+  .calc-field select option { background:var(--navy2); }
+  .calc-result { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:28px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:20px; }
+  .calc-result-item { text-align:center; }
+  .calc-result-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--subtext); margin-bottom:8px; }
+  .calc-result-value { font-family:'DM Mono',monospace; font-size:28px; font-weight:500; color:#fff; line-height:1; }
+  .calc-result-value.accent { color:var(--accent); }
+  .calc-result-value.green  { color:var(--green); }
+  .calc-result-value.gold   { color:var(--gold); }
+  .calc-result-value.red    { color:var(--red); }
+  .calc-result-sub { font-size:11px; color:var(--subtext); margin-top:5px; }
+  .calc-action-bar { background:var(--navy); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-top:20px; font-size:13px; color:var(--text); line-height:1.8; }
+  .action-tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; margin-right:4px; }
+  .action-tag.buy   { background:rgba(16,185,129,0.2); color:var(--green); }
+  .action-tag.skip  { background:rgba(239,68,68,0.2);  color:var(--red); }
+  .action-tag.accum { background:rgba(56,189,248,0.2); color:var(--accent); }
+  .action-tag.strong{ background:rgba(245,158,11,0.2); color:var(--gold); }
+
+  /* ── 실시간 티커 배너 ── */
+  .live-banner {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+    height: 40px;
+    position: relative;
+    z-index: 5;
+  }
+  .live-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    white-space: nowrap;
+    padding-right: 20px;
+    border-right: 1px solid var(--border);
+    margin-right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  .ticker-items {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+  }
+  .ticker-sym  { color: var(--subtext); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+  .ticker-val  { color: #fff; font-weight: 500; }
+  .ticker-chg.pos { color: var(--green); }
+  .ticker-chg.neg { color: var(--red); }
+  .ticker-chg.neu { color: var(--subtext); }
+  .ticker-loader { color: var(--subtext); font-size: 12px; font-style: italic; }
+
+  /* ── 오늘의 신호 카드 ── */
+  .today-signal-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .today-signal-wrap::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue2), var(--accent));
+  }
+  .today-signal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .today-signal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .data-status {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+  .data-status.loading { background: rgba(245,158,11,0.15); color: var(--gold); }
+  .data-status.ok      { background: rgba(16,185,129,0.15);  color: var(--green); }
+  .data-status.error   { background: rgba(239,68,68,0.15);   color: var(--red); }
+  .today-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .today-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .today-item-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtext); margin-bottom: 8px; }
+  .today-item-val   { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: #fff; }
+  .today-item-val.green  { color: var(--green); }
+  .today-item-val.red    { color: var(--red); }
+  .today-item-val.accent { color: var(--accent); }
+  .today-item-val.gold   { color: var(--gold); }
+  .today-result-big {
+    background: var(--navy);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .today-result-left { display: flex; align-items: center; gap: 16px; }
+  .today-shares-big {
+    font-family: 'DM Mono', monospace;
+    font-size: 48px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .today-shares-big.green  { color: var(--green); }
+  .today-shares-big.red    { color: var(--red); }
+  .today-shares-big.accent { color: var(--accent); }
+  .today-shares-big.gold   { color: var(--gold); }
+  .today-result-desc { font-size: 13px; color: var(--subtext); line-height: 1.6; }
+  .today-result-desc strong { color: var(--text); }
+  .today-result-cost {
+    text-align: right;
+  }
+  .today-result-cost .cost-label { font-size: 11px; color: var(--subtext); margin-bottom: 4px; }
+  .today-result-cost .cost-val   { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: var(--accent); }
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--subtext);
+    font-size: 12px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: 'Pretendard', sans-serif;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ── 실시간 티커 배너 ── -->
+<div class="live-banner">
+  <div class="live-label">
+    <div class="live-dot"></div>
+    LIVE
+  </div>
+  <div class="ticker-items" id="ticker-items">
+    <span class="ticker-loader">데이터 로딩 중...</span>
+  </div>
+</div>
+
+<!-- ── 헤더 ── -->
+<header>
+  <div class="header-top">
+    <div>
+      <div class="logo-badge">LIVE STRATEGY DASHBOARD</div>
+      <h1 class="main-title">QLD <span>DCA</span><br>전략 대시보드</h1>
+      <p class="header-meta">
+        IS 기간: 2007.04 – 2018.12 &nbsp;|&nbsp; OOS 기간: 2019.01 – 2026.03<br>
+        비교군: 매일 QLD 5주 무지성 매수 &nbsp;|&nbsp; 워크포워드: 6/6 통과 ✅
+      </p>
+    </div>
+    <div class="strategy-badge">
+      <div>
+        <div class="strategy-label">최종 전략 비율</div>
+        <div class="strategy-value" style="margin-top:6px">v7 × 30% + v9 × 70%</div>
+      </div>
+      <div class="ratio-pill">
+        <div class="ratio-v7">v7<br>30%</div>
+        <div class="ratio-v9">v9<br>70%</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ── 네비게이션 ── -->
+<nav>
+  <a href="#performance" class="active">성과 요약</a>
+  <a href="#wfa">워크포워드</a>
+  <a href="#regime">레짐 가이드</a>
+  <a href="#buyguide">매수 가이드</a>
+  <a href="#signal">신호 설명</a>
+  <a href="#params">파라미터</a>
+</nav>
+
+<!-- ── 메인 ── -->
+<main>
+
+  <!-- 🔴 오늘의 신호 (자동 갱신) -->
+  <div class="today-signal-wrap" id="today-signal-wrap">
+    <div class="today-signal-header">
+      <div class="today-signal-title">
+        📡 오늘의 매수 신호
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="data-status loading" id="data-status">⏳ 데이터 로딩 중...</span>
+        <button class="refresh-btn" onclick="fetchAndCompute()" id="refresh-btn">
+          <span id="refresh-icon">↻</span> 새로고침
+        </button>
+      </div>
+    </div>
+
+    <div class="today-grid" id="today-indicators">
+      <div class="today-item"><div class="today-item-label">QLD 가격</div><div class="today-item-val" id="ti-price">—</div></div>
+      <div class="today-item"><div class="today-item-label">QLD RSI(14)</div><div class="today-item-val" id="ti-rsi">—</div></div>
+      <div class="today-item"><div class="today-item-label">QLD 고점대비</div><div class="today-item-val" id="ti-dd">—</div></div>
+      <div class="today-item"><div class="today-item-label">SPY vs MA200</div><div class="today-item-val" id="ti-spy">—</div></div>
+      <div class="today-item"><div class="today-item-label">QQQ vs MA200</div><div class="today-item-val" id="ti-qqq">—</div></div>
+      <div class="today-item"><div class="today-item-label">VIX</div><div class="today-item-val" id="ti-vix">—</div></div>
+      <div class="today-item"><div class="today-item-label">v7 레짐</div><div class="today-item-val" id="ti-v7reg">—</div></div>
+      <div class="today-item"><div class="today-item-label">v9 레짐</div><div class="today-item-val" id="ti-v9reg">—</div></div>
+    </div>
+
+    <div class="today-result-big" id="today-result-big">
+      <div class="today-result-left">
+        <div class="today-shares-big accent" id="today-shares">—</div>
+        <div class="today-result-desc" id="today-desc">
+          <strong>데이터를 불러오는 중입니다.</strong><br>
+          잠시 후 오늘의 매수 신호가 표시됩니다.
+        </div>
+      </div>
+      <div class="today-result-cost">
+        <div class="cost-label">예상 비용</div>
+        <div class="cost-val" id="today-cost">—</div>
+        <div style="font-size:11px;color:var(--subtext);margin-top:4px" id="today-updated">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ① 성과 요약 -->
+  <section id="performance">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">전략 성과 요약</h2>
+    </div>
+
+    <!-- IS KPI -->
+    <p style="font-size:12px;color:var(--subtext);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin-bottom:14px;">IS 구간 (2007 – 2018)</p>
+    <div class="kpi-grid" style="margin-bottom:40px">
+      <div class="kpi-card fade-up">
+        <div class="kpi-label">IS 원금 대비 수익률</div>
+        <div class="kpi-value pos">+171.6%</div>
+        <div class="kpi-sub">무지성 145.4% <span class="kpi-delta pos">+26.2%p</span></div>
+      </div>
+      <div class="kpi-card fade-up red">
+        <div class="kpi-label">IS MDD (원금 기준)</div>
+        <div class="kpi-value acc">-27.1%</div>
+        <div class="kpi-sub">무지성 -74.5% <span class="kpi-delta pos">+47.4%p 개선</span></div>
+      </div>
+      <div class="kpi-card fade-up green">
+        <div class="kpi-label">IS Score (수익/MDD)</div>
+        <div class="kpi-value acc">6.34</div>
+        <div class="kpi-sub">무지성 1.95 <span class="kpi-delta pos">+4.39</span></div>
+      </div>
+      <div class="kpi-card fade-up gold">
+        <div class="kpi-label">IS Sharpe</div>
+        <div class="kpi-value">0.78</div>
+        <div class="kpi-sub">무지성 0.58 <span class="kpi-delta pos">+0.20</span></div>
+      </div>
+    </div>
+
+    <!-- OOS KPI -->
+    <p style="font-size:12px;color:var(--subtext);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin-bottom:14px;">OOS 구간 (2019 – 2026)</p>
+    <div class="kpi-grid" style="margin-bottom:40px">
+      <div class="kpi-card fade-up">
+        <div class="kpi-label">OOS 원금 대비 수익률</div>
+        <div class="kpi-value">+68.0%</div>
+        <div class="kpi-sub">무지성 73.5% <span class="kpi-delta neg">-5.5%p</span></div>
+      </div>
+      <div class="kpi-card fade-up red">
+        <div class="kpi-label">OOS MDD (원금 기준)</div>
+        <div class="kpi-value acc">-27.4%</div>
+        <div class="kpi-sub">무지성 -28.1% <span class="kpi-delta pos">+0.7%p 개선</span></div>
+      </div>
+      <div class="kpi-card fade-up green">
+        <div class="kpi-label">OOS Score</div>
+        <div class="kpi-value acc">2.48</div>
+        <div class="kpi-sub">무지성 2.62 <span class="kpi-delta neg">-0.14</span></div>
+      </div>
+      <div class="kpi-card fade-up gold">
+        <div class="kpi-label">OOS Sharpe</div>
+        <div class="kpi-value">1.03</div>
+        <div class="kpi-sub">무지성 0.79 <span class="kpi-delta pos">+0.24</span></div>
+      </div>
+    </div>
+
+    <!-- 비교 테이블 -->
+    <div class="chart-card">
+      <div class="chart-title">버전별 성과 비교</div>
+      <div style="overflow-x:auto">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>버전</th>
+              <th>IS 수익률</th>
+              <th>IS MDD</th>
+              <th>IS Score</th>
+              <th>OOS 수익률</th>
+              <th>OOS MDD</th>
+              <th>OOS Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>무지성 DCA</td>
+              <td>145.4%</td>
+              <td class="tag-neg">-74.5%</td>
+              <td>1.95</td>
+              <td>73.5%</td>
+              <td class="tag-neg">-28.1%</td>
+              <td>2.62</td>
+            </tr>
+            <tr>
+              <td>v5 (현금 유보)</td>
+              <td>153.8%</td>
+              <td class="tag-neg">-54.1%</td>
+              <td>2.85</td>
+              <td>96.3%</td>
+              <td>-26.1%</td>
+              <td>3.69</td>
+            </tr>
+            <tr>
+              <td>v6 (이중 확인)</td>
+              <td>153.8%</td>
+              <td>-54.1%</td>
+              <td>2.83</td>
+              <td class="tag-pos">96.3%</td>
+              <td class="tag-acc">-26.1%</td>
+              <td class="tag-acc">3.69</td>
+            </tr>
+            <tr>
+              <td>v7 (현금 풀 이자)</td>
+              <td>153.8%</td>
+              <td>-54.1%</td>
+              <td>2.85</td>
+              <td class="tag-pos">96.3%</td>
+              <td class="tag-acc">-26.1%</td>
+              <td class="tag-acc">3.69</td>
+            </tr>
+            <tr>
+              <td>v9 (조기 감지)</td>
+              <td>160.1%</td>
+              <td class="tag-acc">-23.6%</td>
+              <td>6.79</td>
+              <td class="tag-neg">59.7%</td>
+              <td>-27.4%</td>
+              <td class="tag-neg">2.17</td>
+            </tr>
+            <tr class="highlight">
+              <td><strong>최종 v7×30 + v9×70</strong></td>
+              <td class="tag-pos">171.6%</td>
+              <td class="tag-acc">-27.1%</td>
+              <td class="tag-gold">6.34</td>
+              <td>68.0%</td>
+              <td class="tag-acc">-27.4%</td>
+              <td>2.48</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 차트 -->
+    <div class="chart-grid" style="margin-top:24px">
+      <div class="chart-card">
+        <div class="chart-title">수익률 비교</div>
+        <canvas id="returnChart" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">MDD 비교 (원금 기준)</div>
+        <canvas id="mddChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- 혼합 비율별 효과 -->
+    <div class="chart-card" style="margin-top:24px">
+      <div class="chart-title">혼합 비율별 IS MDD 변화</div>
+      <canvas id="blendChart" height="160"></canvas>
+    </div>
+  </section>
+
+  <!-- ② 워크포워드 -->
+  <section id="wfa">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">워크포워드 검증</h2>
+    </div>
+    <div class="info-box">
+      <strong>앵커드 방식</strong>: 시작점(2007) 고정, OOS 2년 롤링. v7 파라미터 <strong>재튜닝 없이</strong> 6개 구간 전부 검증.<br>
+      판정 기준: 수익률 / MDD / Score 중 2개 이상 무지성 대비 우위 시 승리.
+    </div>
+
+    <div class="chart-grid" style="margin-bottom:24px">
+      <div class="chart-card full">
+        <div class="chart-title">워크포워드 구간별 MDD 개선 (전략 - 무지성)</div>
+        <canvas id="wfaChart" height="130"></canvas>
+      </div>
+    </div>
+
+    <!-- WFA 행 -->
+    <div id="wfaRows"></div>
+
+    <div style="margin-top:20px;padding:16px 24px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:24px">✅</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--green)">6/6 윈도우 우위 — 강건 판정</div>
+        <div style="font-size:12px;color:var(--subtext);margin-top:2px">모든 시장 레짐(강세, 혼조, 급락, 금리인상)에서 MDD 개선 확인</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ 레짐 가이드 -->
+  <section id="regime">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">레짐별 매수량 가이드</h2>
+    </div>
+    <div class="info-box">
+      매일 <strong>v7 파트(30%)</strong>와 <strong>v9 파트(70%)</strong>를 각각 판단하여 합산. 기준 매수량 5주/일.
+    </div>
+
+    <p style="font-size:12px;color:var(--subtext);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">v9 파트 (70%) — 5단계 레짐</p>
+    <div class="regime-grid" style="margin-bottom:32px">
+      <div class="regime-card bull">
+        <div class="regime-icon">🟢</div>
+        <div class="regime-name">BULL</div>
+        <div class="regime-shares">3.5주 <span style="font-size:14px;color:var(--subtext)">(기본)</span></div>
+        <div class="regime-desc">강세 레짐. 타이밍 STRONG 시 10.5주로 증가.</div>
+        <div class="regime-condition">SPY > MA200<br>QQQ > MA200<br>QLD > MA60, MA20 > MA60</div>
+      </div>
+      <div class="regime-card neutral">
+        <div class="regime-icon">🟡</div>
+        <div class="regime-name">NEUTRAL</div>
+        <div class="regime-shares">3.5주</div>
+        <div class="regime-desc">중립 구간. 방향성 불분명.</div>
+        <div class="regime-condition">BULL도 BEAR도 아닌<br>중간 상태</div>
+      </div>
+      <div class="regime-card caution">
+        <div class="regime-icon">🟠</div>
+        <div class="regime-name">CAUTION</div>
+        <div class="regime-shares">0~2.5주</div>
+        <div class="regime-desc">초기 경보. 매수량 축소.</div>
+        <div class="regime-condition">SPY 고점 -10% 이상<br>또는 VIX &gt; 20 + 상승</div>
+      </div>
+      <div class="regime-card prebear">
+        <div class="regime-icon">🔴</div>
+        <div class="regime-name">PRE_BEAR</div>
+        <div class="regime-shares">0주 + 절반 적립</div>
+        <div class="regime-desc">BEAR 직전. 현금 풀 비축 시작.</div>
+        <div class="regime-condition">SPY 고점 -15% 이상<br>또는 MA 데드크로스<br>+ SPY &lt; MA50</div>
+      </div>
+      <div class="regime-card bear">
+        <div class="regime-icon">⛔</div>
+        <div class="regime-name">BEAR</div>
+        <div class="regime-shares">0주 + 전액 적립</div>
+        <div class="regime-desc">완전 스킵. 낙폭 구간별 1~2배 현금 적립.</div>
+        <div class="regime-condition">SPY &lt; MA200<br>AND QQQ &lt; MA200<br>또는 VIX &gt; 40 + 상승</div>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--subtext);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">BEAR 종료 시 — 집중 매수 (deploy)</p>
+    <div class="chart-card">
+      <div class="chart-title">집중 매수 분산 일수 (VIX 수준별)</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px">
+        <div style="text-align:center;padding:20px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px">
+          <div style="font-size:11px;color:var(--subtext);margin-bottom:8px">VIX &gt; 30 (공포 완화)</div>
+          <div style="font-family:'DM Mono',monospace;font-size:28px;color:#EF4444;font-weight:500">5일</div>
+          <div style="font-size:11px;color:var(--subtext);margin-top:4px">빠른 집행</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px">
+          <div style="font-size:11px;color:var(--subtext);margin-bottom:8px">VIX 20~30 (주의)</div>
+          <div style="font-family:'DM Mono',monospace;font-size:28px;color:var(--gold);font-weight:500">10일</div>
+          <div style="font-size:11px;color:var(--subtext);margin-top:4px">보통 속도</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px">
+          <div style="font-size:11px;color:var(--subtext);margin-bottom:8px">VIX &lt; 20 (안정)</div>
+          <div style="font-family:'DM Mono',monospace;font-size:28px;color:var(--green);font-weight:500">20일</div>
+          <div style="font-size:11px;color:var(--subtext);margin-top:4px">천천히 분할</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ④ 신호 설명 다음: 매수 가이드 -->
+  <section id="buyguide">
+    <div class="section-header">
+      <span class="section-num">04-B</span>
+      <h2 class="section-title">매수 가이드</h2>
+    </div>
+
+    <div class="info-box">
+      <strong>v7(30%) + v9(70%)</strong> 두 파트를 각각 판단 후 합산. 기준 매수량 5주/일.<br>
+      STRONG = 타이밍 점수 ≥ 3 (RSI 과매도 + 볼린저 하단 + 낙폭 구간 등 동시 충족 시).
+    </div>
+
+    <!-- 매수 시나리오 매트릭스 테이블 -->
+    <div class="chart-card" style="margin-bottom:24px">
+      <div class="chart-title">레짐 조합 × 타이밍별 매수 주수 매트릭스</div>
+      <div style="overflow-x:auto">
+        <table class="buy-matrix">
+          <thead>
+            <tr>
+              <th>v7 레짐 (30%)</th>
+              <th>v9 레짐 (70%)</th>
+              <th>타이밍</th>
+              <th>v7 파트</th>
+              <th>v9 파트</th>
+              <th>합계</th>
+              <th>행동</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- BULL × BULL -->
+            <tr>
+              <td>🟢 BULL</td><td>🟢 BULL</td><td>기본</td>
+              <td><span class="shares-pill mid">1.5주</span></td>
+              <td><span class="shares-pill mid">3.5주</span></td>
+              <td><span class="shares-pill mid">5주</span></td>
+              <td>기본 매수</td>
+            </tr>
+            <tr>
+              <td>🟢 BULL</td><td>🟢 BULL</td><td>⚡ STRONG</td>
+              <td><span class="shares-pill max">4.5주</span></td>
+              <td><span class="shares-pill max">10.5주</span></td>
+              <td><span class="shares-pill max">15주</span></td>
+              <td>최대 매수</td>
+            </tr>
+            <!-- BULL × NEUTRAL -->
+            <tr>
+              <td>🟢 BULL</td><td>🟡 NEUTRAL</td><td>기본</td>
+              <td><span class="shares-pill mid">1.5주</span></td>
+              <td><span class="shares-pill mid">3.5주</span></td>
+              <td><span class="shares-pill mid">5주</span></td>
+              <td>기본 매수</td>
+            </tr>
+            <tr>
+              <td>🟢 BULL</td><td>🟡 NEUTRAL</td><td>⚡ STRONG</td>
+              <td><span class="shares-pill max">4.5주</span></td>
+              <td><span class="shares-pill high">3.5주</span></td>
+              <td><span class="shares-pill high">8주</span></td>
+              <td>증량 매수</td>
+            </tr>
+            <!-- BULL × CAUTION -->
+            <tr>
+              <td>🟢 BULL</td><td>🟠 CAUTION</td><td>기본</td>
+              <td><span class="shares-pill mid">1.5주</span></td>
+              <td><span class="shares-pill low">0~2.5주</span></td>
+              <td><span class="shares-pill low">1.5~4주</span></td>
+              <td>축소 매수</td>
+            </tr>
+            <!-- BULL × PRE_BEAR -->
+            <tr>
+              <td>🟢 BULL</td><td>🔴 PRE_BEAR</td><td>—</td>
+              <td><span class="shares-pill mid">1.5주</span></td>
+              <td><span class="shares-pill zero">0주</span></td>
+              <td><span class="shares-pill low">1.5주</span></td>
+              <td>최소 매수 + 적립</td>
+            </tr>
+            <!-- NEUTRAL × NEUTRAL -->
+            <tr>
+              <td>🟡 NEUTRAL</td><td>🟡 NEUTRAL</td><td>기본</td>
+              <td><span class="shares-pill mid">1.5주</span></td>
+              <td><span class="shares-pill mid">3.5주</span></td>
+              <td><span class="shares-pill mid">5주</span></td>
+              <td>기본 매수</td>
+            </tr>
+            <!-- NEUTRAL × CAUTION -->
+            <tr>
+              <td>🟡 NEUTRAL</td><td>🟠 CAUTION</td><td>기본</td>
+              <td><span class="shares-pill mid">1.5주</span></td>
+              <td><span class="shares-pill low">0~2.5주</span></td>
+              <td><span class="shares-pill low">1.5~4주</span></td>
+              <td>축소 매수</td>
+            </tr>
+            <!-- BEAR × BEAR -->
+            <tr>
+              <td>🔴 BEAR</td><td>⛔ BEAR</td><td>—</td>
+              <td><span class="shares-pill zero">0주</span></td>
+              <td><span class="shares-pill zero">0주</span></td>
+              <td><span class="shares-pill zero">0주</span></td>
+              <td>완전 스킵 + 적립</td>
+            </tr>
+            <!-- BEAR × PRE_BEAR -->
+            <tr>
+              <td>🔴 BEAR</td><td>🔴 PRE_BEAR</td><td>—</td>
+              <td><span class="shares-pill zero">0주</span></td>
+              <td><span class="shares-pill zero">0주</span></td>
+              <td><span class="shares-pill zero">0주</span></td>
+              <td>완전 스킵 + 적립</td>
+            </tr>
+            <!-- BEAR 종료 후 deploy -->
+            <tr style="background:rgba(56,189,248,0.05)">
+              <td colspan="3" style="color:var(--accent);font-weight:600">⚡ BEAR 종료 → deploy 중 (VIX별 분산)</td>
+              <td colspan="2" style="color:var(--accent)">집중 매수 포함</td>
+              <td><span class="shares-pill high">5주+α</span></td>
+              <td>집중 매수 진행</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 인터랙티브 계산기 -->
+    <div class="calc-wrap">
+      <div class="calc-title">오늘 매수량 계산기</div>
+
+      <div class="calc-grid">
+        <div class="calc-field">
+          <label>v7 레짐 (30% 파트)</label>
+          <select id="calc-v7-regime" onchange="calcShares()">
+            <option value="BULL">🟢 BULL</option>
+            <option value="NEUTRAL">🟡 NEUTRAL</option>
+            <option value="BEAR">🔴 BEAR</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>v9 레짐 (70% 파트)</label>
+          <select id="calc-v9-regime" onchange="calcShares()">
+            <option value="BULL">🟢 BULL</option>
+            <option value="NEUTRAL">🟡 NEUTRAL</option>
+            <option value="CAUTION">🟠 CAUTION</option>
+            <option value="PRE_BEAR">🔴 PRE_BEAR</option>
+            <option value="BEAR">⛔ BEAR</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>타이밍 점수 (0~9)</label>
+          <input type="number" id="calc-timing" value="1" min="0" max="9" oninput="calcShares()">
+        </div>
+        <div class="calc-field">
+          <label>QLD 현재가 ($)</label>
+          <input type="number" id="calc-price" value="90" min="1" step="0.01" oninput="calcShares()">
+        </div>
+        <div class="calc-field">
+          <label>deploy 잔여 현금 ($)</label>
+          <input type="number" id="calc-deploy" value="0" min="0" step="100" oninput="calcShares()">
+        </div>
+        <div class="calc-field">
+          <label>deploy 잔여 일수</label>
+          <input type="number" id="calc-deploy-days" value="0" min="0" max="20" oninput="calcShares()">
+        </div>
+      </div>
+
+      <div class="calc-result" id="calc-result">
+        <div class="calc-result-item">
+          <div class="calc-result-label">v7 파트</div>
+          <div class="calc-result-value accent" id="res-v7">1.5주</div>
+          <div class="calc-result-sub" id="res-v7-sub">BULL 기본</div>
+        </div>
+        <div class="calc-result-item">
+          <div class="calc-result-label">v9 파트</div>
+          <div class="calc-result-value accent" id="res-v9">3.5주</div>
+          <div class="calc-result-sub" id="res-v9-sub">BULL 기본</div>
+        </div>
+        <div class="calc-result-item">
+          <div class="calc-result-label">deploy 오늘 몫</div>
+          <div class="calc-result-value gold" id="res-deploy">0주</div>
+          <div class="calc-result-sub" id="res-deploy-sub">현금 풀 집행</div>
+        </div>
+        <div class="calc-result-item">
+          <div class="calc-result-label">오늘 총 매수</div>
+          <div class="calc-result-value green" id="res-total">5.0주</div>
+          <div class="calc-result-sub" id="res-cost">예상 비용: $450.00</div>
+        </div>
+      </div>
+
+      <div class="calc-action-bar" id="calc-action">
+        <span class="action-tag buy">매수</span>
+        오늘 <strong id="action-shares">5.0주</strong>를 종가 근처에서 매수하세요.
+        예상 비용: <strong id="action-cost">$450.00</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ 신호 설명 -->
+  <section id="signal">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">매일 신호 출력 설명</h2>
+    </div>
+    <div class="info-box">
+      매일 장 시작 전 <code style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent)">python qld_daily_signal.py</code> 실행 → 당일 레짐과 매수 주수 출력.
+    </div>
+
+    <div class="signal-steps">
+      <div class="signal-step">
+        <div class="step-num">STEP 01</div>
+        <div class="step-title">지표 확인</div>
+        <div class="step-body">최근 2년치 QLD·SPY·QQQ·VIX 데이터를 yfinance로 자동 수집. MA, RSI, 볼린저밴드, 고점 대비 낙폭 등 모든 지표를 계산한다.</div>
+        <div class="step-code">QLD RSI(14): 52.3<br>QLD 고점대비: -8.2%<br>SPY vs MA200: 위 ✅<br>VIX: 18.4 (3일전比 -1.2)</div>
+      </div>
+      <div class="signal-step">
+        <div class="step-num">STEP 02</div>
+        <div class="step-title">레짐 판단</div>
+        <div class="step-body">v7 파트(30%)와 v9 파트(70%)를 각각 독립적으로 판단. v9는 CAUTION/PRE_BEAR 단계가 추가되어 조기 경보 가능.</div>
+        <div class="step-code">v7 레짐 (30%): 🟢 BULL<br>  타이밍 점수: 2<br>v9 레짐 (70%): 🟡 NEUTRAL<br>  타이밍 점수: 2</div>
+      </div>
+      <div class="signal-step">
+        <div class="step-num">STEP 03</div>
+        <div class="step-title">타이밍 점수 계산</div>
+        <div class="step-body">RSI 과매도, 볼린저 하단, 낙폭 구간, 연속 하락일, VIX 하락 전환 등 7개 조건으로 점수 합산. 3점 이상 시 STRONG.</div>
+        <div class="step-code">RSI &lt; 35    → +2점<br>BB 하단 이탈 → +1점<br>낙폭 -20%↓  → +2점<br>연속하락 3일↑→ +1점<br>VIX 하락전환 → +1점</div>
+      </div>
+      <div class="signal-step">
+        <div class="step-num">STEP 04</div>
+        <div class="step-title">매수량 결정 및 출력</div>
+        <div class="step-body">v7+v9 합산 매수량 출력. BEAR 구간이면 현금 풀 적립 안내. BEAR 종료 후 deploy 중이면 추가 집중 매수량 포함.</div>
+        <div class="step-code">━━━━━━━━━━━━━━━━━━━━<br>🟡 오늘 매수: 5.0주<br>→ 예상 비용: $432.50<br>━━━━━━━━━━━━━━━━━━━━</div>
+      </div>
+      <div class="signal-step">
+        <div class="step-num">STEP 05</div>
+        <div class="step-title">실행</div>
+        <div class="step-body">장 마감 직전(오후 3:50~4:00) 종가 근처에서 시장가 매수. 소수점은 반올림(1.5주 → 1 또는 2주, 일관성 유지).</div>
+        <div class="step-code">v7 파트: 1.5주<br>v9 파트: 3.5주<br>─────────────<br>합계:    5.0주<br>종가 매수 실행</div>
+      </div>
+      <div class="signal-step">
+        <div class="step-num">TIP</div>
+        <div class="step-title">현금 풀 관리</div>
+        <div class="step-body">BEAR 구간 스킵 예산은 SHY 또는 MMF에 보관. BEAR 종료 신호 발생 시 스크립트가 자동으로 집중 매수량을 산출하여 출력.</div>
+        <div class="step-code">🔴 BEAR 구간: 0주<br>→ $450 현금 풀 적립<br>───────────────────<br>BEAR 종료 → deploy 시작<br>집중매수: +8.3주/일 (5일)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ 파라미터 -->
+  <section id="params">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">전략 파라미터 정리</h2>
+    </div>
+
+    <div class="param-grid">
+      <div class="param-card">
+        <div class="param-card-header">공통 파라미터</div>
+        <div class="param-row"><span class="param-key">기준 매수량</span><span class="param-val">5주/일</span></div>
+        <div class="param-row"><span class="param-key">BEAR VIX 임계값</span><span class="param-val">40</span></div>
+        <div class="param-row"><span class="param-key">BEAR 이중 확인</span><span class="param-val">SPY & QQQ < MA200</span></div>
+        <div class="param-row"><span class="param-key">집중 매수 기본 분산</span><span class="param-val">20거래일</span></div>
+        <div class="param-row"><span class="param-key">낙폭 -15% 이상 적립 배율</span><span class="param-val">1.5배</span></div>
+        <div class="param-row"><span class="param-key">낙폭 -40% 이상 적립 배율</span><span class="param-val">2.0배</span></div>
+        <div class="param-row"><span class="param-key">STRONG 타이밍 임계값</span><span class="param-val">3점</span></div>
+        <div class="param-row"><span class="param-key">STRONG 매수 배수</span><span class="param-val">3배 (15주)</span></div>
+        <div class="param-row"><span class="param-key">현금 풀 이자율</span><span class="param-val">연 5.0%</span></div>
+      </div>
+      <div class="param-card">
+        <div class="param-card-header">v9 추가 파라미터 (70% 비중)</div>
+        <div class="param-row"><span class="param-key">CAUTION 진입 SPY 낙폭</span><span class="param-val">-10%</span></div>
+        <div class="param-row"><span class="param-key">CAUTION 진입 VIX</span><span class="param-val">> 20 + 상승</span></div>
+        <div class="param-row"><span class="param-key">PRE_BEAR 진입 SPY 낙폭</span><span class="param-val">-15%</span></div>
+        <div class="param-row"><span class="param-key">PRE_BEAR 추가 조건</span><span class="param-val">MA 데드크로스 + SPY<MA50</span></div>
+        <div class="param-card-header" style="margin-top:1px">혼합 비율</div>
+        <div class="param-row"><span class="param-key">v7 비율</span><span class="param-val" style="color:var(--blue2)">30%</span></div>
+        <div class="param-row"><span class="param-key">v9 비율</span><span class="param-val" style="color:var(--accent)">70%</span></div>
+        <div class="param-row"><span class="param-key">MDD 내성 기준</span><span class="param-val">-30% 이내</span></div>
+        <div class="param-row"><span class="param-key">IS 기간</span><span class="param-val">2007.04 – 2018.12</span></div>
+        <div class="param-row"><span class="param-key">OOS 기간</span><span class="param-val">2019.01 – 2026.03</span></div>
+      </div>
+    </div>
+
+    <!-- 타이밍 점수 상세 -->
+    <div class="chart-card" style="margin-top:24px">
+      <div class="chart-title">타이밍 점수 계산표 (STRONG 매수 조건)</div>
+      <div style="overflow-x:auto">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">조건</th>
+              <th>점수</th>
+              <th>설명</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>QLD RSI &lt; 35</td><td class="tag-pos">+2</td><td style="font-size:12px;color:var(--subtext)">강한 과매도 신호</td></tr>
+            <tr><td>QLD RSI 35~45</td><td class="tag-pos">+1</td><td style="font-size:12px;color:var(--subtext)">중간 과매도</td></tr>
+            <tr><td>QLD 볼린저 하단 이탈</td><td class="tag-pos">+1</td><td style="font-size:12px;color:var(--subtext)">통계적 과매도 구간</td></tr>
+            <tr><td>QLD 고점 대비 -20% 이하</td><td class="tag-pos">+2</td><td style="font-size:12px;color:var(--subtext)">큰 낙폭 = 매수 기회</td></tr>
+            <tr><td>QLD 고점 대비 -10~-20%</td><td class="tag-pos">+1</td><td style="font-size:12px;color:var(--subtext)">중간 낙폭</td></tr>
+            <tr><td>QLD 연속 하락 3일 이상</td><td class="tag-pos">+1</td><td style="font-size:12px;color:var(--subtext)">단기 반등 기대</td></tr>
+            <tr><td>VIX &gt; 20 이고 하락 전환</td><td class="tag-pos">+1</td><td style="font-size:12px;color:var(--subtext)">공포 완화 신호</td></tr>
+            <tr style="background:rgba(27,79,216,0.1)"><td><strong>합계 ≥ 3점</strong></td><td class="tag-acc"><strong>STRONG</strong></td><td style="font-size:12px;color:var(--accent)">→ 15주 매수 (3배)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>QLD DCA 전략 대시보드 &nbsp;|&nbsp; v7×30% + v9×70% 혼합</span>
+  <span>IS: 2007–2018 &nbsp;|&nbsp; OOS: 2019–2026 &nbsp;|&nbsp; 워크포워드 6/6 ✅</span>
+</footer>
+
+<script>
+// ── 네비 활성화 ──
+const sections = document.querySelectorAll('section');
+const navLinks  = document.querySelectorAll('nav a');
+const observer  = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-40% 0px -55% 0px' });
+sections.forEach(s => observer.observe(s));
+
+navLinks.forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+// ── Chart.js 공통 설정 ──
+Chart.defaults.color = '#94A3B8';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const gridColor = 'rgba(56,189,248,0.07)';
+
+// ── 수익률 비교 차트 ──
+new Chart(document.getElementById('returnChart'), {
+  type: 'bar',
+  data: {
+    labels: ['IS (2007–2018)', 'OOS (2019–2026)'],
+    datasets: [
+      { label: '무지성', data: [145.4, 73.5], backgroundColor: 'rgba(148,163,184,0.25)', borderColor: '#94A3B8', borderWidth: 1.5 },
+      { label: '최종 전략', data: [171.6, 68.0], backgroundColor: 'rgba(56,189,248,0.3)', borderColor: '#38BDF8', borderWidth: 1.5 },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { usePointStyle: true, pointStyle: 'rect' } } },
+    scales: {
+      x: { grid: { color: gridColor } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── MDD 비교 차트 ──
+new Chart(document.getElementById('mddChart'), {
+  type: 'bar',
+  data: {
+    labels: ['IS (2007–2018)', 'OOS (2019–2026)'],
+    datasets: [
+      { label: '무지성', data: [-74.5, -28.1], backgroundColor: 'rgba(239,68,68,0.25)', borderColor: '#EF4444', borderWidth: 1.5 },
+      { label: '최종 전략', data: [-27.1, -27.4], backgroundColor: 'rgba(56,189,248,0.3)', borderColor: '#38BDF8', borderWidth: 1.5 },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { usePointStyle: true, pointStyle: 'rect' } } },
+    scales: {
+      x: { grid: { color: gridColor } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── 혼합 비율 차트 ──
+new Chart(document.getElementById('blendChart'), {
+  type: 'line',
+  data: {
+    labels: ['v9 100%','v9 90%','v9 80%','v9 70%','v9 60%','v9 50%','v9 40%','v9 30%','v9 20%','v9 10%','v7 100%'],
+    datasets: [
+      {
+        label: 'IS MDD',
+        data: [-23.5,-22.8,-22.1,-27.1,-31.8,-36.2,-40.3,-44.1,-47.6,-50.9,-54.0],
+        borderColor: '#38BDF8', backgroundColor: 'rgba(56,189,248,0.08)',
+        fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6,
+      },
+      {
+        label: 'OOS MDD',
+        data: [-27.9,-27.7,-27.6,-27.4,-27.2,-27.0,-26.8,-26.6,-26.4,-26.3,-26.1],
+        borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.05)',
+        fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 6, borderDash: [4,4],
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { usePointStyle: true } },
+      annotation: {}
+    },
+    scales: {
+      x: { grid: { color: gridColor } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── 워크포워드 데이터 ──
+const wfaData = [
+  { win: 'W1', period: '2013–2014', char: 'QE 강세장',    ret: +3.4, mdd: -0.0, score: +0.98, pass: true },
+  { win: 'W2', period: '2015–2016', char: '혼조 (금리 정상화)', ret: -0.8, mdd: +6.9, score: +0.24, pass: true },
+  { win: 'W3', period: '2017–2018', char: '트럼프 랠리',   ret: +6.5, mdd: +5.2, score: +0.31, pass: true },
+  { win: 'W4', period: '2019–2020', char: '코로나 급락/반등', ret: -2.6, mdd: +5.9, score: +0.69, pass: true },
+  { win: 'W5', period: '2021–2022', char: '금리인상 폭락',  ret: +1.8, mdd: +2.0, score: -0.00, pass: true },
+  { win: 'W6', period: '2023–2026', char: 'AI 강세장',    ret: +3.2, mdd: +9.5, score: +11.32, pass: true },
+];
+
+// WFA 바 차트
+new Chart(document.getElementById('wfaChart'), {
+  type: 'bar',
+  data: {
+    labels: wfaData.map(d => d.win + ' ' + d.period),
+    datasets: [
+      {
+        label: '수익률 개선 (%p)',
+        data: wfaData.map(d => d.ret),
+        backgroundColor: wfaData.map(d => d.ret >= 0 ? 'rgba(56,189,248,0.5)' : 'rgba(239,68,68,0.4)'),
+        borderColor: wfaData.map(d => d.ret >= 0 ? '#38BDF8' : '#EF4444'),
+        borderWidth: 1.5,
+      },
+      {
+        label: 'MDD 개선 (%p)',
+        data: wfaData.map(d => d.mdd),
+        backgroundColor: wfaData.map(d => d.mdd >= 0 ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.4)'),
+        borderColor: wfaData.map(d => d.mdd >= 0 ? '#10B981' : '#EF4444'),
+        borderWidth: 1.5,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { usePointStyle: true, pointStyle: 'rect' } } },
+    scales: {
+      x: { grid: { color: gridColor } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => v > 0 ? '+'+v+'%p' : v+'%p' } }
+    }
+  }
+});
+
+// WFA 행 렌더링
+const wfaContainer = document.getElementById('wfaRows');
+const maxAbsMdd = Math.max(...wfaData.map(d => Math.abs(d.mdd)));
+wfaData.forEach(d => {
+  const pct = Math.abs(d.mdd) / maxAbsMdd * 100;
+  const pos = d.mdd >= 0;
+  const row = document.createElement('div');
+  row.className = 'wfa-row';
+  row.innerHTML = `
+    <div>
+      <div class="wfa-label">${d.win}</div>
+      <div class="wfa-period">${d.period}</div>
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--subtext);margin-bottom:6px">${d.char}</div>
+      <div class="bar-wrap">
+        <div class="bar-fill ${pos ? 'pos' : 'neg'}" style="width:${pct}%"></div>
+      </div>
+    </div>
+    <div class="wfa-val ${pos ? 'tag-pos' : 'tag-neg'}">MDD ${pos ? '+' : ''}${d.mdd.toFixed(1)}%p</div>
+    <div class="wfa-val" style="color:${d.ret>=0?'var(--accent)':'var(--red)'}">수익 ${d.ret>=0?'+':''}${d.ret.toFixed(1)}%p</div>
+    <div class="wfa-badge ${d.pass ? 'win' : 'lose'}">${d.pass ? '✅' : '❌'}</div>
+  `;
+  wfaContainer.appendChild(row);
+});
+
+// ── 바 애니메이션 (IntersectionObserver) ──
+const barObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.bar-fill').forEach(b => {
+        const w = b.style.width;
+        b.style.width = '0';
+        setTimeout(() => b.style.width = w, 50);
+      });
+      barObs.unobserve(e.target);
+    }
+  });
+});
+document.querySelectorAll('#wfaRows').forEach(el => barObs.observe(el));
+
+// ── 실시간 데이터 로딩 ──────────────────────────────────────────
+
+const PROXY = 'https://corsproxy.io/?';
+const YF_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+
+// 야후 파이낸스에서 일봉 N개 가져오기
+async function fetchYF(symbol, range = '1y', interval = '1d') {
+  const url = `${YF_BASE}${symbol}?range=${range}&interval=${interval}&includeAdjustedClose=true`;
+  const res  = await fetch(PROXY + encodeURIComponent(url));
+  if (!res.ok) throw new Error(`fetch ${symbol} failed`);
+  const data = await res.json();
+  const chart = data.chart.result[0];
+  const closes = chart.indicators.adjclose?.[0]?.adjclose || chart.indicators.quote[0].close;
+  return { timestamps: chart.timestamp, closes };
+}
+
+// 지표 계산 유틸
+function calcMA(arr, n) {
+  if (arr.length < n) return null;
+  return arr.slice(-n).reduce((a, b) => a + b, 0) / n;
+}
+
+function calcRSI(closes, n = 14) {
+  if (closes.length < n + 1) return null;
+  const diffs = closes.slice(-(n + 1)).map((v, i, a) => i === 0 ? 0 : v - a[i - 1]).slice(1);
+  const gains = diffs.map(d => d > 0 ? d : 0);
+  const losses = diffs.map(d => d < 0 ? -d : 0);
+  const avgGain = gains.reduce((a, b) => a + b, 0) / n;
+  const avgLoss = losses.reduce((a, b) => a + b, 0) / n;
+  if (avgLoss === 0) return 100;
+  return 100 - 100 / (1 + avgGain / avgLoss);
+}
+
+function calcBBLower(closes, n = 20) {
+  if (closes.length < n) return null;
+  const slice = closes.slice(-n);
+  const mean  = slice.reduce((a, b) => a + b, 0) / n;
+  const std   = Math.sqrt(slice.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0) / n);
+  return mean - 2 * std;
+}
+
+function calcDD(closes, n = 252) {
+  const slice = closes.slice(-Math.min(n, closes.length));
+  const max   = Math.max(...slice);
+  if (max === 0) return 0;
+  return (closes[closes.length - 1] - max) / max;
+}
+
+// 레짐 판단
+function getRegimeV7(ind) {
+  const isBear = (ind.spy < ind.spyMA200 && ind.qqq < ind.qqqMA200) || (ind.vix > 40 && ind.vixChg3 > 0);
+  const isBull  = ind.spy > ind.spyMA200 && ind.qqq > ind.qqqMA200 && ind.qld > ind.qldMA60 && ind.qldMA20 > ind.qldMA60;
+  return isBear ? 'BEAR' : isBull ? 'BULL' : 'NEUTRAL';
+}
+
+function getRegimeV9(ind) {
+  const isBear    = (ind.spy < ind.spyMA200 && ind.qqq < ind.qqqMA200) || (ind.vix > 40 && ind.vixChg3 > 0);
+  const isPreBear = (ind.spyDD < -0.15 || (ind.qldMA20 < ind.qldMA60 && ind.spy < ind.spyMA50)) && !isBear;
+  const isCaution = (ind.spyDD < -0.10 || (ind.vix > 20 && ind.vixChg3 > 0)) && !isBear && !isPreBear;
+  const isBull    = ind.spy > ind.spyMA200 && ind.qqq > ind.qqqMA200 && ind.qld > ind.qldMA60 && ind.qldMA20 > ind.qldMA60 && !isBear && !isPreBear && !isCaution;
+  if (isBear)    return 'BEAR';
+  if (isPreBear) return 'PRE_BEAR';
+  if (isCaution) return 'CAUTION';
+  if (isBull)    return 'BULL';
+  return 'NEUTRAL';
+}
+
+function getTimingScore(ind, regime) {
+  let ts = 0;
+  if (ind.rsi < 35) ts += 2;
+  else if (ind.rsi < 45) ts += 1;
+  if (ind.qld < ind.bbLower) ts += 1;
+  if (ind.qldDD < -0.20) ts += 2;
+  else if (ind.qldDD < -0.10) ts += 1;
+  if (ind.consecDown >= 3) ts += 1;
+  if (ind.vix > 20 && ind.vixChg3 < -2) ts += 1;
+  const skip = ind.rsi > 72 || ind.ret20 > 0.25;
+  const isStrong = ts >= 3 && !skip && (regime === 'BULL' || regime === 'NEUTRAL');
+  const isSkip   = skip && regime !== 'BEAR' && regime !== 'PRE_BEAR';
+  return { ts, isStrong, isSkip };
+}
+
+function computeShares(v7reg, v9reg, tsInfo, price) {
+  const { isStrong } = tsInfo;
+  const SLIPPAGE = 0.01; const COMM = 1.0005;
+  let v7 = 0;
+  if (v7reg === 'BEAR') v7 = 0;
+  else if (isStrong) v7 = 5 * 3 * 0.3;
+  else if (!tsInfo.isSkip) v7 = 5 * 0.3;
+
+  let v9 = 0;
+  if (v9reg === 'BEAR' || v9reg === 'PRE_BEAR') v9 = 0;
+  else if (v9reg === 'CAUTION') v9 = isStrong ? 5 * 0.7 * 0.5 : 5 * 0.7 * 0.4;
+  else if (isStrong) v9 = 5 * 3 * 0.7;
+  else if (!tsInfo.isSkip) v9 = 5 * 0.7;
+
+  const total = v7 + v9;
+  const cost  = total * (price + SLIPPAGE) * COMM;
+  return { v7, v9, total, cost };
+}
+
+// 연속 하락일 계산
+function countConsecDown(closes) {
+  let count = 0;
+  for (let i = closes.length - 1; i > 0; i--) {
+    if (closes[i] < closes[i - 1]) count++;
+    else break;
+  }
+  return count;
+}
+
+// 메인 fetch & compute
+async function fetchAndCompute() {
+  const statusEl  = document.getElementById('data-status');
+  const refreshEl = document.getElementById('refresh-icon');
+  statusEl.className = 'data-status loading';
+  statusEl.textContent = '⏳ 로딩 중...';
+  refreshEl.className = 'spin';
+  refreshEl.textContent = '↻';
+
+  try {
+    const [dQLD, dSPY, dQQQ, dVIX] = await Promise.all([
+      fetchYF('QLD', '2y', '1d'),
+      fetchYF('SPY', '2y', '1d'),
+      fetchYF('QQQ', '2y', '1d'),
+      fetchYF('%5EVIX', '6mo', '1d'),
+    ]);
+
+    const qld = dQLD.closes.filter(v => v !== null);
+    const spy = dSPY.closes.filter(v => v !== null);
+    const qqq = dQQQ.closes.filter(v => v !== null);
+    const vix = dVIX.closes.filter(v => v !== null);
+
+    const ind = {
+      qld:      qld.at(-1),
+      spy:      spy.at(-1),
+      qqq:      qqq.at(-1),
+      vix:      vix.at(-1),
+      qldMA20:  calcMA(qld, 20),
+      qldMA60:  calcMA(qld, 60),
+      qldMA200: calcMA(qld, 200),
+      spyMA50:  calcMA(spy, 50),
+      spyMA200: calcMA(spy, 200),
+      qqqMA200: calcMA(qqq, 200),
+      rsi:      calcRSI(qld, 14),
+      bbLower:  calcBBLower(qld, 20),
+      qldDD:    calcDD(qld, 252),
+      spyDD:    calcDD(spy, 252),
+      vixChg3:  vix.length >= 4 ? vix.at(-1) - vix.at(-4) : 0,
+      ret20:    qld.length >= 21 ? (qld.at(-1) - qld.at(-21)) / qld.at(-21) : 0,
+      consecDown: countConsecDown(qld),
+    };
+
+    const v7reg  = getRegimeV7(ind);
+    const v9reg  = getRegimeV9(ind);
+    const tsInfo = getTimingScore(ind, v7reg);
+    const result = computeShares(v7reg, v9reg, tsInfo, ind.qld);
+
+    // 티커 업데이트
+    updateTicker([
+      { sym: 'QLD',  val: ind.qld,  prev: qld.at(-2) },
+      { sym: 'SPY',  val: ind.spy,  prev: spy.at(-2) },
+      { sym: 'QQQ',  val: ind.qqq,  prev: qqq.at(-2) },
+      { sym: 'VIX',  val: ind.vix,  prev: vix.at(-2), invert: true },
+    ]);
+
+    // 오늘 신호 카드 업데이트
+    const fmt = (v, d=2) => v != null ? v.toFixed(d) : '—';
+    const regEmoji = r => ({ BULL:'🟢', NEUTRAL:'🟡', CAUTION:'🟠', PRE_BEAR:'🔴', BEAR:'⛔' }[r] || '—');
+    const ddPct = (v7reg === 'BEAR' || v9reg === 'BEAR' || v9reg === 'PRE_BEAR');
+
+    set('ti-price', '$' + fmt(ind.qld), ind.qld > ind.qldMA20 ? 'green' : 'red');
+    set('ti-rsi',   fmt(ind.rsi,1), ind.rsi < 35 ? 'green' : ind.rsi > 72 ? 'red' : 'accent');
+    set('ti-dd',    (ind.qldDD*100).toFixed(1)+'%', ind.qldDD < -0.15 ? 'green' : ind.qldDD < -0.05 ? 'gold' : 'accent');
+    set('ti-spy',   ind.spy > ind.spyMA200 ? '위 ✅' : '아래 ⚠️', ind.spy > ind.spyMA200 ? 'green' : 'red');
+    set('ti-qqq',   ind.qqq > ind.qqqMA200 ? '위 ✅' : '아래 ⚠️', ind.qqq > ind.qqqMA200 ? 'green' : 'red');
+    set('ti-vix',   fmt(ind.vix,1) + (ind.vixChg3 > 0 ? ' ↑' : ' ↓'), ind.vix > 30 ? 'red' : ind.vix > 20 ? 'gold' : 'green');
+    set('ti-v7reg', regEmoji(v7reg) + ' ' + v7reg, v7reg === 'BULL' ? 'green' : v7reg === 'BEAR' ? 'red' : 'gold');
+    set('ti-v9reg', regEmoji(v9reg) + ' ' + v9reg, v9reg === 'BULL' ? 'green' : (v9reg === 'BEAR' || v9reg === 'PRE_BEAR') ? 'red' : 'gold');
+
+    // 큰 결과
+    const sharesEl = document.getElementById('today-shares');
+    sharesEl.textContent = result.total.toFixed(1) + '주';
+    sharesEl.className = 'today-shares-big ' +
+      (result.total === 0 ? 'red' : result.total >= 10 ? 'gold' : result.total >= 5 ? 'green' : 'accent');
+
+    const descEl = document.getElementById('today-desc');
+    let descMsg = '';
+    if (result.total === 0 && ddPct) {
+      descMsg = `<strong>스킵 — 현금 풀 적립</strong><br>예산 $${(5*ind.qld).toFixed(0)} 를 단기채(SHY/MMF)에 적립하세요.`;
+    } else if (tsInfo.isStrong) {
+      descMsg = `<strong>⚡ STRONG 매수 신호!</strong><br>타이밍 점수 ${tsInfo.ts}점 — v7 ${result.v7.toFixed(1)}주 + v9 ${result.v9.toFixed(1)}주`;
+    } else if (result.total === 0) {
+      descMsg = `<strong>과열 구간 스킵</strong><br>RSI 또는 20일 수익률 과열. 오늘은 쉽니다.`;
+    } else {
+      descMsg = `<strong>기본 매수</strong><br>v7 파트 ${result.v7.toFixed(1)}주 + v9 파트 ${result.v9.toFixed(1)}주<br>타이밍 점수: ${tsInfo.ts}점`;
+    }
+    descEl.innerHTML = descMsg;
+
+    document.getElementById('today-cost').textContent = result.total > 0 ? '$' + result.cost.toFixed(2) : '—';
+    const now = new Date();
+    document.getElementById('today-updated').textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 갱신`;
+
+    statusEl.className = 'data-status ok';
+    statusEl.textContent = '✅ 실시간 데이터';
+
+    // 계산기 자동 채우기
+    document.getElementById('calc-v7-regime').value = v7reg;
+    document.getElementById('calc-v9-regime').value = v9reg;
+    document.getElementById('calc-timing').value = tsInfo.ts;
+    document.getElementById('calc-price').value  = ind.qld.toFixed(2);
+    calcShares();
+
+  } catch (err) {
+    console.warn('데이터 로딩 실패:', err);
+    statusEl.className = 'data-status error';
+    statusEl.textContent = '⚠️ 로딩 실패 — 수동 입력 사용';
+    document.getElementById('today-shares').textContent = '수동 입력';
+    document.getElementById('today-desc').innerHTML = '<strong>자동 데이터 로딩에 실패했습니다.</strong><br>아래 계산기에 직접 레짐과 가격을 입력하세요.';
+    updateTicker([]);
+  } finally {
+    refreshEl.className = '';
+    refreshEl.textContent = '↻';
+  }
+}
+
+function set(id, text, cls = '') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'today-item-val' + (cls ? ' ' + cls : '');
+}
+
+function updateTicker(items) {
+  const container = document.getElementById('ticker-items');
+  if (!items.length) {
+    container.innerHTML = '<span class="ticker-loader">데이터 없음 — 수동 입력 모드</span>';
+    return;
+  }
+  container.innerHTML = items.map(({ sym, val, prev, invert }) => {
+    const chg = prev ? ((val - prev) / prev * 100) : 0;
+    const pos = invert ? chg < 0 : chg >= 0;
+    const cls = Math.abs(chg) < 0.01 ? 'neu' : pos ? 'pos' : 'neg';
+    return `<div class="ticker-item">
+      <span class="ticker-sym">${sym}</span>
+      <span class="ticker-val">$${val.toFixed(2)}</span>
+      <span class="ticker-chg ${cls}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</span>
+    </div>`;
+  }).join('');
+}
+
+// 페이지 로드 시 자동 실행 + 30분마다 갱신
+fetchAndCompute();
+setInterval(fetchAndCompute, 30 * 60 * 1000);
+
+
+function calcShares() {
+  const v7reg  = document.getElementById('calc-v7-regime').value;
+  const v9reg  = document.getElementById('calc-v9-regime').value;
+  const timing = parseInt(document.getElementById('calc-timing').value) || 0;
+  const price  = parseFloat(document.getElementById('calc-price').value) || 90;
+  const deployPool = parseFloat(document.getElementById('calc-deploy').value) || 0;
+  const deployDays = parseInt(document.getElementById('calc-deploy-days').value) || 0;
+  const SLIPPAGE = 0.01; const COMM = 1.0005;
+  const isStrong = timing >= 3;
+
+  // v7 파트 (30% 기준)
+  let v7shares = 0; let v7sub = '';
+  if (v7reg === 'BEAR') {
+    v7shares = 0; v7sub = 'BEAR — 스킵';
+  } else if (isStrong && (v7reg === 'BULL' || v7reg === 'NEUTRAL')) {
+    v7shares = 5 * 3 * 0.3; v7sub = 'STRONG ×3배';
+  } else {
+    v7shares = 5 * 0.3; v7sub = v7reg + ' 기본';
+  }
+
+  // v9 파트 (70% 기준)
+  let v9shares = 0; let v9sub = '';
+  if (v9reg === 'BEAR' || v9reg === 'PRE_BEAR') {
+    v9shares = 0; v9sub = v9reg + ' — 스킵+적립';
+  } else if (v9reg === 'CAUTION') {
+    v9shares = isStrong ? 5 * 0.7 * 0.5 : 5 * 0.7 * 0.4;
+    v9sub = 'CAUTION 축소';
+  } else if (isStrong) {
+    v9shares = 5 * 3 * 0.7; v9sub = 'STRONG ×3배';
+  } else {
+    v9shares = 5 * 0.7; v9sub = v9reg + ' 기본';
+  }
+
+  // deploy 오늘 몫
+  let deployShares = 0; let deploySub = '없음';
+  if (deployPool > 0 && deployDays > 0) {
+    const dailyAmt = deployPool / deployDays;
+    deployShares = dailyAmt / (price + SLIPPAGE);
+    deploySub = `$${(dailyAmt).toFixed(0)} 집행`;
+  }
+
+  const total = v7shares + v9shares + deployShares;
+  const cost  = total * (price + SLIPPAGE) * COMM;
+
+  // 결과 업데이트
+  document.getElementById('res-v7').textContent    = v7shares.toFixed(1) + '주';
+  document.getElementById('res-v7-sub').textContent = v7sub;
+  document.getElementById('res-v9').textContent    = v9shares.toFixed(1) + '주';
+  document.getElementById('res-v9-sub').textContent = v9sub;
+  document.getElementById('res-deploy').textContent = deployShares.toFixed(1) + '주';
+  document.getElementById('res-deploy-sub').textContent = deploySub;
+  document.getElementById('res-total').textContent  = total.toFixed(1) + '주';
+  document.getElementById('res-cost').textContent   = '예상 비용: $' + cost.toFixed(2);
+
+  // 색상
+  const totalEl = document.getElementById('res-total');
+  totalEl.className = 'calc-result-value ' + (total === 0 ? 'red' : total >= 10 ? 'gold' : total >= 5 ? 'green' : 'accent');
+
+  // 액션 바
+  const actionBar = document.getElementById('calc-action');
+  document.getElementById('action-shares').textContent = total.toFixed(1) + '주';
+  document.getElementById('action-cost').textContent   = '$' + cost.toFixed(2);
+
+  let tag, msg;
+  if (total === 0) {
+    tag = '<span class="action-tag skip">스킵</span>';
+    const isAccum = (v7reg === 'BEAR' || v9reg === 'BEAR' || v9reg === 'PRE_BEAR');
+    msg = isAccum
+      ? '오늘은 매수 없이 현금 풀에 적립합니다. (<strong>$' + (5 * price).toFixed(0) + '</strong> 적립 예산)'
+      : '과열 구간으로 오늘은 스킵합니다.';
+    tag += (isAccum ? ' <span class="action-tag accum">현금 적립</span>' : '');
+  } else if (isStrong && total >= 10) {
+    tag = '<span class="action-tag strong">STRONG</span>';
+    msg = '타이밍 점수 ' + timing + '점 — 강한 매수 신호. <strong>' + total.toFixed(1) + '주</strong>를 종가 근처에 매수. 예상 비용: <strong>$' + cost.toFixed(2) + '</strong>';
+  } else if (deployShares > 0) {
+    tag = '<span class="action-tag buy">매수</span> <span class="action-tag accum">deploy</span>';
+    msg = 'BEAR 종료 집중 매수 진행 중. 오늘 <strong>' + total.toFixed(1) + '주</strong> 매수. 예상 비용: <strong>$' + cost.toFixed(2) + '</strong>';
+  } else {
+    tag = '<span class="action-tag buy">매수</span>';
+    msg = '오늘 <strong>' + total.toFixed(1) + '주</strong>를 종가 근처에서 매수하세요. 예상 비용: <strong>$' + cost.toFixed(2) + '</strong>';
+  }
+  actionBar.innerHTML = tag + ' ' + msg;
+}
+
+// 초기 실행
+calcShares();
+</script>
+</body>
+</html>
