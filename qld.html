@@ -1938,16 +1938,18 @@ async function fetchAndCompute() {
     ]);
 
     // 오늘 신호 카드 업데이트
-    const fmt = (v, d=2) => v != null ? v.toFixed(d) : '—';
+    const fmt    = (v, d=2) => (v != null && !isNaN(v)) ? Number(v).toFixed(d) : '—';
     const regEmoji = r => ({ BULL:'🟢', NEUTRAL:'🟡', CAUTION:'🟠', PRE_BEAR:'🔴', BEAR:'⛔' }[r] || '—');
-    const ddPct = (v7reg === 'BEAR' || v9reg === 'BEAR' || v9reg === 'PRE_BEAR');
+    const ddPct  = (v7reg === 'BEAR' || v9reg === 'BEAR' || v9reg === 'PRE_BEAR');
+    const safeDD = ind.qldDD != null ? ind.qldDD : 0;
+    const safeRSI= ind.rsi   != null ? ind.rsi   : 50;
 
-    set('ti-price', '$' + fmt(ind.qld), ind.qld > ind.qldMA20 ? 'green' : 'red');
-    set('ti-rsi',   fmt(ind.rsi,1), ind.rsi < 35 ? 'green' : ind.rsi > 72 ? 'red' : 'accent');
-    set('ti-dd',    (ind.qldDD*100).toFixed(1)+'%', ind.qldDD < -0.15 ? 'green' : ind.qldDD < -0.05 ? 'gold' : 'accent');
-    set('ti-spy',   ind.spy > ind.spyMA200 ? '위 ✅' : '아래 ⚠️', ind.spy > ind.spyMA200 ? 'green' : 'red');
-    set('ti-qqq',   ind.qqq > ind.qqqMA200 ? '위 ✅' : '아래 ⚠️', ind.qqq > ind.qqqMA200 ? 'green' : 'red');
-    set('ti-vix',   fmt(ind.vix,1) + (ind.vixChg3 > 0 ? ' ↑' : ' ↓'), ind.vix > 30 ? 'red' : ind.vix > 20 ? 'gold' : 'green');
+    set('ti-price', '$' + fmt(ind.qld), (ind.qldMA20 && ind.qld > ind.qldMA20) ? 'green' : 'red');
+    set('ti-rsi',   fmt(safeRSI, 1),    safeRSI < 35 ? 'green' : safeRSI > 72 ? 'red' : 'accent');
+    set('ti-dd',    (safeDD * 100).toFixed(1) + '%', safeDD < -0.15 ? 'green' : safeDD < -0.05 ? 'gold' : 'accent');
+    set('ti-spy',   (ind.spyMA200 && ind.spy > ind.spyMA200) ? '위 ✅' : '아래 ⚠️', (ind.spyMA200 && ind.spy > ind.spyMA200) ? 'green' : 'red');
+    set('ti-qqq',   (ind.qqqMA200 && ind.qqq > ind.qqqMA200) ? '위 ✅' : '아래 ⚠️', (ind.qqqMA200 && ind.qqq > ind.qqqMA200) ? 'green' : 'red');
+    set('ti-vix',   fmt(ind.vix, 1) + (ind.vixChg3 > 0 ? ' ↑' : ' ↓'), ind.vix > 30 ? 'red' : ind.vix > 20 ? 'gold' : 'green');
     set('ti-v7reg', regEmoji(v7reg) + ' ' + v7reg, v7reg === 'BULL' ? 'green' : v7reg === 'BEAR' ? 'red' : 'gold');
     set('ti-v9reg', regEmoji(v9reg) + ' ' + v9reg, v9reg === 'BULL' ? 'green' : (v9reg === 'BEAR' || v9reg === 'PRE_BEAR') ? 'red' : 'gold');
 
@@ -1960,7 +1962,7 @@ async function fetchAndCompute() {
     const descEl = document.getElementById('today-desc');
     let descMsg = '';
     if (result.total === 0 && ddPct) {
-      descMsg = `<strong>스킵 — 현금 풀 적립</strong><br>예산 $${(5*ind.qld).toFixed(0)} 를 단기채(SHY/MMF)에 적립하세요.`;
+      descMsg = `<strong>스킵 — 현금 풀 적립</strong><br>예산 $${(5 * ind.qld).toFixed(0)}를 단기채(SHY/MMF)에 적립하세요.`;
     } else if (tsInfo.isStrong) {
       descMsg = `<strong>⚡ STRONG 매수 신호!</strong><br>타이밍 점수 ${tsInfo.ts}점 — v7 ${result.v7.toFixed(1)}주 + v9 ${result.v9.toFixed(1)}주`;
     } else if (result.total === 0) {
@@ -1985,12 +1987,18 @@ async function fetchAndCompute() {
     calcShares();
 
   } catch (err) {
-    console.warn('데이터 로딩 실패:', err);
+    console.warn('데이터 로딩 실패:', err.message || err);
+    // 지표는 표시됐을 수 있으므로 상태만 업데이트
     statusEl.className = 'data-status error';
-    statusEl.textContent = '⚠️ 로딩 실패 — 수동 입력 사용';
-    document.getElementById('today-shares').textContent = '수동 입력';
-    document.getElementById('today-desc').innerHTML = '<strong>자동 데이터 로딩에 실패했습니다.</strong><br>아래 계산기에 직접 레짐과 가격을 입력하세요.';
-    updateTicker([]);
+    statusEl.textContent = '⚠️ 일부 로딩 실패';
+    // today-shares가 아직 '—' 상태일 때만 수동 입력 표시
+    const sharesEl = document.getElementById('today-shares');
+    if (sharesEl.textContent === '—') {
+      sharesEl.textContent = '수동 입력';
+      document.getElementById('today-desc').innerHTML =
+        '<strong>자동 데이터 로딩에 실패했습니다.</strong><br>아래 계산기에 직접 레짐과 가격을 입력하세요.';
+      updateTicker([]);
+    }
   } finally {
     refreshEl.className = '';
     refreshEl.textContent = '↻';
