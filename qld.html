@@ -1749,13 +1749,13 @@ const YF_BASE = '/yahoo';
 
 // Cloudflare Pages Function 호출
 async function fetchYF(symbol, range = '2y', interval = '1d') {
-  const url = `${YF_BASE}?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=${interval}`;
+  // encodeURIComponent 없이 직접 전달 (yahoo.js 내부에서 처리)
+  const url = `${YF_BASE}?symbol=${symbol}&range=${range}&interval=${interval}`;
   const res  = await fetch(url, { signal: AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${symbol}`);
   const data = await res.json();
   if (!data?.chart?.result?.[0]) throw new Error(`No data for ${symbol}`);
   const chart  = data.chart.result[0];
-  // adjclose 우선, 없으면 quote.close 사용, null 제거
   let closes;
   if (chart.indicators.adjclose?.[0]?.adjclose) {
     closes = chart.indicators.adjclose[0].adjclose.filter(v => v != null && !isNaN(v));
@@ -1875,7 +1875,7 @@ async function fetchAndCompute() {
       fetchYF('QLD', '2y', '1d'),
       fetchYF('SPY', '2y', '1d'),
       fetchYF('QQQ', '2y', '1d'),
-      fetchYF('%5EVIX', '1y', '1d'),
+      fetchYF('^VIX', '1y', '1d'),
     ]);
 
     const qld = dQLD.closes.filter(v => v !== null);
