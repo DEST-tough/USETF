@@ -363,7 +363,7 @@ var RSI_THRESH = 75;
 // ════════════════════════════════════════════════════════
 async function yahooQuote(symbol) {
   var urls = [
-    "/.netlify/functions/yahoo?symbol=" + encodeURIComponent(symbol),
+    "/yahoo?symbol=" + encodeURIComponent(symbol),
     "https://api.allorigins.win/get?url=" + encodeURIComponent(
       "https://query1.finance.yahoo.com/v8/finance/chart/" + symbol + "?interval=1d&range=1y"
     )

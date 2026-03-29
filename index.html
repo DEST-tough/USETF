@@ -78,7 +78,6 @@
     <button class="tab" onclick="switchTab('holdings',this)">잔고 입력</button>
     <button class="tab" onclick="switchTab('action',this)">이번 주 매매</button>
     <button class="tab" onclick="switchTab('portfolio',this)">포트 현황</button>
-    <button class="tab" onclick="switchTab('perf',this)">📈 수익률</button>
   </div>
 
   <!-- 탭 패널들 -->
@@ -86,25 +85,24 @@
   <div id="tab-holdings" class="hidden"></div>
   <div id="tab-action" class="hidden"></div>
   <div id="tab-portfolio" class="hidden"></div>
-  <div id="tab-perf" class="hidden"></div>
 
 </div>
 
 <script>
 // ── 포트폴리오 데이터 ───────────────────────────────────────────
 var PORT1 = { name:"올웨더 방어형", short:"P1", color:"#38bdf8",
-  assets:[{t:"QQQM",w:.12},{t:"MOAT",w:.10},{t:"QUAL",w:.08},{t:"SPYM",w:.05},
+  assets:[{t:"QQQM",w:.12},{t:"MOAT",w:.10},{t:"QUAL",w:.08},{t:"SPLG",w:.05},
           {t:"GLDM",w:.25},{t:"DBMF",w:.20},
           {t:"IEF",w:.10},{t:"JEPI",w:.06},{t:"GPIQ",w:.04}]};
-var PORT2 = { name:"공격형 v3A", short:"P2", color:"#fb923c",
-  assets:[{t:"QQQM",w:.15},{t:"SCHG",w:.13},{t:"MTUM",w:.15},{t:"XLK",w:.10},
-          {t:"SOXQ",w:.07},{t:"QLD",w:.15},{t:"SSO",w:.10},
-          {t:"TQQQ",w:.05},{t:"JEPI",w:.05},{t:"GPIQ",w:.05}]};
+var PORT2 = { name:"공격형 v4", short:"P2", color:"#fb923c",
+  assets:[{t:"QQQM",w:.20},{t:"SCHG",w:.15},{t:"MTUM",w:.15},{t:"XLK",w:.12},
+          {t:"SOXQ",w:.08},{t:"QLD",w:.10},{t:"SSO",w:.08},
+          {t:"JEPI",w:.06},{t:"GPIQ",w:.06}]};
 var PORT3 = { name:"위기면역형 v2", short:"P3", color:"#c084fc",
   assets:[{t:"QQQM",w:.12},{t:"SCHG",w:.09},{t:"MOAT",w:.08},{t:"MTUM",w:.11},
           {t:"QUAL",w:.07},{t:"QLD",w:.12},{t:"SSO",w:.05},{t:"DBMF",w:.08},
           {t:"MLPX",w:.06},{t:"GPIQ",w:.05},{t:"JEPI",w:.03},{t:"XLK",w:.04},
-          {t:"SOXQ",w:.02},{t:"SPYM",w:.05},{t:"GLDM",w:.03}]};
+          {t:"SOXX",w:.02},{t:"SPLG",w:.05},{t:"GLDM",w:.03}]};
 
 var RS_CONFIGS = [
   {rs:0,label:"극안전",w1:.05,w2:.60,w3:.35,color:"#34d399"},
@@ -113,9 +111,9 @@ var RS_CONFIGS = [
   {rs:3,label:"위험",  w1:.50,w2:.15,w3:.35,color:"#f87171"},
   {rs:4,label:"긴급",  w1:.70,w2:.05,w3:.25,color:"#ef4444"},
 ];
-var ALL_TICKERS = ["QQQM","SPYM","GLDM","MOAT","QUAL","SCHG","MTUM",
+var ALL_TICKERS = ["QQQM","SPLG","GLDM","MOAT","QUAL","SCHG","MTUM",
                    "XLK","SOXQ","SSO","QLD","TQQQ","JEPI","GPIQ",
-                   "DBMF","IEF","MLPX"];
+                   "DBMF","IEF","MLPX","SOXX","PDBC"];
 
 // ── Google Sheets URL (배포 후 여기에 입력) ──────────────────
 var GS_URL = ""; // 예: "https://script.google.com/macros/s/XXXXX/exec"
@@ -159,52 +157,12 @@ function save() {
   })); } catch(e){}
 }
 
-// ── 수익률 히스토리 (로컬 캐시) ─────────────────────────────
-var perfHistory = []; // [{date,totalInv,totalVal,qqqPrice,ret,qqqRet}]
-
-function loadPerfHistory() {
-  try { perfHistory = JSON.parse(localStorage.getItem("toss-perf")||"[]"); } catch(e){ perfHistory=[]; }
-}
-function savePerfHistory() {
-  try { localStorage.setItem("toss-perf", JSON.stringify(perfHistory)); } catch(e){}
-}
-
 // 명시적 저장 (버튼 클릭 시) - 실제 응답 확인
 async function saveToSheet() {
   save(); // localStorage
-
-  // ── 스냅샷 기록 ──────────────────────────────────────────
-  var total = getTotalValue();
-  var qqqP  = state.qqqPrice || 0;
-  if(total > 0 && qqqP > 0) {
-    var today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit"}).replace(/\. /g,"-").replace(".","-").replace(/\.$/, "");
-    // 같은 날 중복 저장 방지 (마지막 항목 날짜 비교)
-    var last = perfHistory[perfHistory.length-1];
-    // 투입원금: 직전 스냅샷 없으면 현재 평가금액을 기준으로, 있으면 직전+DCA
-    var totalInv = last ? (last.totalInv + state.dca) : total;
-    var baseQqq  = last ? last.qqqPrice : qqqP; // QQQ 기준가 (첫 스냅샷)
-    var snap = {
-      date:     today,
-      totalInv: Math.round(totalInv * 100) / 100,
-      totalVal: Math.round(total * 100) / 100,
-      qqqPrice: qqqP,
-      ret:      last ? +((total / last.totalVal - 1) * 100).toFixed(2) : 0,
-      qqqRet:   last ? +((qqqP  / last.qqqPrice - 1) * 100).toFixed(2) : 0,
-      retCum:   +((total / totalInv - 1) * 100).toFixed(2),
-      qqqRetCum:+((qqqP  / (perfHistory[0]?.qqqPrice||qqqP) - 1) * 100).toFixed(2),
-    };
-    if(last && last.date === today) {
-      // 같은 날 저장 시 덮어쓰기
-      perfHistory[perfHistory.length-1] = snap;
-    } else {
-      perfHistory.push(snap);
-    }
-    savePerfHistory();
-  }
-
   setSyncStatus("ing", "저장 중...");
   try {
-    var res = await fetch("/.netlify/functions/gs", {
+    var res = await fetch("/gs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -218,8 +176,6 @@ async function saveToSheet() {
         mom:          state.mom,
         below200:     state.below200,
         manualRS:     state.manualRS,
-        // 히스토리도 함께 저장
-        perfHistory:  JSON.stringify(perfHistory),
       })
     });
     var text = await res.text();
@@ -229,8 +185,7 @@ async function saveToSheet() {
     }
     if (json.ok) {
       var now = new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
-      setSyncStatus("ok", "✓ " + now + " 저장 완료 (스냅샷 "+perfHistory.length+"개)");
-      if(currentTab==="perf") renderPerf(getTotalValue());
+      setSyncStatus("ok", "✓ " + now + " 시트에 저장 완료");
     } else {
       throw new Error(json.error || "저장 실패");
     }
@@ -261,9 +216,10 @@ function gsSave() { /* saveToSheet()로 대체됨 */ }
 
 // ── Google Sheets 불러오기 ────────────────────────────────────
 async function gsLoad() {
+
   setSyncStatus("ing", "시트에서 불러오는 중...");
   try {
-    var res  = await fetch("/.netlify/functions/gs?action=read");
+    var res  = await fetch("/gs?action=read");
     var json = await res.json();
     if (!json.ok) throw new Error(json.error || "응답 오류");
     var d = json.data;
@@ -277,41 +233,15 @@ async function gsLoad() {
     if (d.mom      !== undefined) state.mom          = d.mom;
     if (d.below200 !== undefined) state.below200     = d.below200;
     if (d.manualRS !== undefined) state.manualRS     = d.manualRS;
-    if (d.perfHistory) {
-      try { perfHistory = JSON.parse(d.perfHistory); savePerfHistory(); } catch(e){}
-    }
     // 로컬에도 저장
     try { localStorage.setItem("toss-v3", JSON.stringify(d)); } catch(e){}
     var now = new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
-    setSyncStatus("ok", "✓ " + now + " 불러오기 완료");
+    setSyncStatus("ok", "✓ " + now + " 시트에서 불러오기 완료");
     renderAll();
   } catch(e) {
     setSyncStatus("err", "불러오기 실패: " + e.message);
   }
 }
-
-// ── 계단식 DCA (총자산 구간별 고정 금액) ─────────────────────
-var DCA_STEPS = [
-  { below: 10000,  dca:  50 },
-  { below: 30000,  dca: 100 },
-  { below: 60000,  dca: 200 },
-  { below: 100000, dca: 300 },
-  { below: 150000, dca: 500 },
-  { below: 250000, dca: 700 },
-  { below: 400000, dca:1000 },
-  { below: Infinity,dca:1500 },
-];
-function calcStepDCA(total) {
-  if (!total || total <= 0) return state.dca; // 미입력 시 수동값 유지
-  for (var i = 0; i < DCA_STEPS.length; i++) {
-    if (total < DCA_STEPS[i].below) return DCA_STEPS[i].dca;
-  }
-  return 1500;
-}
-
-// ── 드리프트 임계값 ───────────────────────────────────────────
-var DRIFT_TRIM = 0.05;  // 목표 대비 +5%p 초과 → TRIM
-var DRIFT_ADD  = 0.05;  // 목표 대비 −5%p 부족 → ADD 우선
 
 function calcRS(dd,vix,rising,mom,below200){
   var s=0;
@@ -349,7 +279,7 @@ function portColor(t){
 async function yahooQuote(symbol) {
   // Netlify Function 프록시 경유 → CORS 문제 없음
   var urls = [
-    "/.netlify/functions/yahoo?symbol=" + encodeURIComponent(symbol),
+    "/yahoo?symbol=" + encodeURIComponent(symbol),
     // 폴백: allorigins
     "https://api.allorigins.win/get?url=" + encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/"+symbol+"?interval=1d&range=1y"),
   ];
@@ -490,7 +420,7 @@ async function handleFetch(){
 var currentTab = "signal";
 function switchTab(id, el){
   currentTab = id;
-  ["signal","holdings","action","portfolio","perf"].forEach(function(t){
+  ["signal","holdings","action","portfolio"].forEach(function(t){
     document.getElementById("tab-"+t).classList.toggle("hidden", t!==id);
   });
   document.querySelectorAll(".tab").forEach(function(b){ b.classList.remove("active"); });
@@ -515,7 +445,6 @@ function renderAll(){
   if(currentTab==="holdings") renderHoldings(cfg,tw,total);
   if(currentTab==="action") renderAction(rs,cfg,tw,total);
   if(currentTab==="portfolio") renderPortfolio(rs,cfg,tw,total);
-  if(currentTab==="perf") renderPerf(total);
 }
 
 function renderSignal(rs,cfg){
@@ -639,32 +568,18 @@ function renderHoldings(cfg,tw,total){
     ].join("");
   }).join("");
 
-  var dcaBtns = [50,100,200,300,500,700,1000,1500].map(function(v){
+  var dcaBtns = [50,100,200,500,1000].map(function(v){
     var active = state.dca===v;
     return '<button onclick="state.dca='+v+';save();renderAll()" style="padding:7px 10px;border-radius:8px;border:none;cursor:pointer;font-family:monospace;font-size:12px;font-weight:700;background:'+(active?"#0f2d4a":"#0a1628")+';color:'+(active?"#38bdf8":"#94a3b8")+';">$'+v+'</button>';
   }).join("");
 
-  // 계단식 DCA 가이드 표시
-  var stepGuide = DCA_STEPS.map(function(s,i){
-    var prev = i>0 ? DCA_STEPS[i-1].below : 0;
-    var label = s.below===Infinity
-      ? "$"+(prev/1000).toFixed(0)+"K+"
-      : "$"+(prev>0?(prev/1000).toFixed(0)+"K":"0")+" ~ $"+(s.below/1000).toFixed(0)+"K";
-    var isActive = total>0 && total >= prev && (s.below===Infinity || total < s.below);
-    return '<div style="display:flex;justify-content:space-between;padding:3px 6px;border-radius:6px;background:'+(isActive?"#0f2d4a":"transparent")+';border:'+(isActive?"1px solid #1e3a5f50":"1px solid transparent")+';">'+
-      '<span style="color:'+(isActive?"#38bdf8":"#475569")+';font-size:10px;">'+label+'</span>'+
-      '<span style="color:'+(isActive?"#fb923c":"#475569")+';font-size:10px;font-weight:'+(isActive?"700":"400")+';">$'+s.dca+'</span>'+
-    '</div>';
-  }).join("");
-
-  var effDCA = calcStepDCA(total);
   var summaryHtml = total>0 ? [
     '<div class="card" style="border-color:#14532d;">',
       '<div class="label">SUMMARY</div>',
       '<div class="grid2" style="grid-template-columns:repeat(4,1fr);gap:6px;">',
         [{l:"총 평가금액",v:fmt(total),c:"#34d399"},
          {l:"보유 종목",  v:Object.values(state.quantities).filter(function(v){return v>0;}).length+"개",c:"#38bdf8"},
-         {l:"이번주 DCA", v:"$"+effDCA+(effDCA!==state.dca?" (자동)":""),c:"#fb923c"},
+         {l:"주간 DCA",  v:"$"+state.dca,c:"#fb923c"},
          {l:"YTD 배당금",v:"$"+state.dividendsYtd.toFixed(2),c:"#c084fc"}
         ].map(function(s){
           return '<div style="background:#060d1c;border-radius:8px;padding:10px;"><div style="color:#94a3b8;font-size:9px;">'+s.l+'</div><div style="color:'+s.c+';font-size:15px;font-weight:700;margin-top:3px;">'+s.v+'</div></div>';
@@ -679,7 +594,7 @@ function renderHoldings(cfg,tw,total){
       '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">',
         '<select id="divTicker" style="background:#0a1628;border:1px solid #1e3a5f;border-radius:8px;padding:7px;color:#f1f5f9;font-family:monospace;font-size:12px;">',
           '<option value="">종목 선택</option>',
-          ["JEPI","GPIQ","IEF","DBMF","MLPX","SPYM","QQQM"].map(function(t){return '<option>'+t+'</option>';}).join(""),
+          ["JEPI","GPIQ","IEF","DBMF","MLPX","SPLG","QQQM"].map(function(t){return '<option>'+t+'</option>';}).join(""),
         '</select>',
         '<input id="divAmt" type="number" placeholder="배당금액($)" style="width:110px;background:#0a1628;border:1px solid #1e3a5f;border-radius:8px;padding:7px;color:#f1f5f9;font-family:monospace;font-size:13px;font-weight:700;">',
         '<button onclick="recordDiv()" style="padding:7px 12px;border-radius:8px;border:none;cursor:pointer;font-family:monospace;font-size:12px;font-weight:700;background:#0f2d4a;color:#fb923c;">+ 기록</button>',
@@ -700,20 +615,13 @@ function renderHoldings(cfg,tw,total){
       '</div>',
 
       '<div style="background:#060d1c;border-radius:8px;padding:10px;border:1px solid #0f2d4a;margin-bottom:12px;">',
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">',
-          '<div style="color:#94a3b8;font-size:11px;">주간 DCA (수동 설정)</div>',
-          (total>0?'<div style="color:#fb923c;font-size:11px;font-weight:700;">이번 주 자동: $'+calcStepDCA(total)+'</div>':""),
-        '</div>',
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;">',
+        '<div style="color:#94a3b8;font-size:11px;margin-bottom:8px;">주간 DCA</div>',
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">',
           '<div style="position:relative;">',
             '<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#38bdf8;font-size:16px;font-weight:700;pointer-events:none;">$</span>',
             '<input type="number" value="'+state.dca+'" oninput="state.dca=+this.value;save();" style="width:100px;background:#0a1628;border:1px solid #1e3a5f;border-radius:8px;padding:8px 8px 8px 22px;color:#f1f5f9;font-family:monospace;font-size:16px;font-weight:700;">',
           '</div>',
           dcaBtns,
-        '</div>',
-        '<div style="border-top:1px solid #0f2d4a;padding-top:8px;">',
-          '<div style="color:#475569;font-size:9px;margin-bottom:5px;">계단식 DCA 가이드 (자산 이번 주 매매 탭에 자동 반영)</div>',
-          stepGuide,
         '</div>',
       '</div>',
 
@@ -731,112 +639,43 @@ function renderHoldings(cfg,tw,total){
 }
 
 function renderAction(rs,cfg,tw,total){
-  var effectiveDCA = calcStepDCA(total);
-  var tv = total>0 ? total+effectiveDCA : 50000;
-
+  var tv = total>0 ? total+state.dca : 50000;
   var items = Object.entries(tw).map(function(e){
     var t=e[0],tww=e[1];
-    var held   = getHoldingValue(t);
-    var curPct = total>0 ? held/total : tww; // 현재 비중 (total 기준)
-    var gap    = tww - curPct;               // 목표 대비 차이 (+부족/-초과)
-
-    // 드리프트 판단 (잔고 있을 때만)
-    var drift = total>0 ? curPct - tww : 0;
-    var isTrim = drift >  DRIFT_TRIM;   // 5%p 초과 → TRIM
-    var isAdd  = gap   >  DRIFT_ADD;    // 5%p 부족 → ADD 우선
-
-    // 매수 금액: TRIM 종목은 0, ADD 종목은 DCA 우선 배분
-    var buy = 0;
-    if (isTrim) {
-      buy = 0; // 매수 없음, TRIM 신호
-    } else {
-      buy = total>0
-        ? Math.max(0, Math.min(gap * tv, effectiveDCA * tww))
-        : Math.round(tww * effectiveDCA);
-    }
-
-    // TRIM 금액: 초과분 중 버퍼(2%p) 남기고 매도
-    var trimAmt = 0;
-    if (isTrim && total>0) {
-      var excessPct = drift - 0.02; // 2%p 버퍼 남김
-      trimAmt = Math.round(excessPct * total * 100) / 100;
-    }
-
-    return {t:t, tw:tww, held:held, gap:gap, curPct:curPct,
-            buy:buy, isTrim:isTrim, isAdd:isAdd, trimAmt:trimAmt, drift:drift};
-  }).sort(function(a,b){
-    // TRIM 항목 맨 위, 그 다음 gap 큰 순
-    if (a.isTrim && !b.isTrim) return -1;
-    if (!a.isTrim && b.isTrim) return 1;
-    return b.gap - a.gap;
-  });
+    var held = getHoldingValue(t);
+    var curP = total>0 ? held/tv : tww;
+    var gap  = tww-curP;
+    var buy  = total>0 ? Math.max(0,Math.min(gap*tv,state.dca*tww)) : Math.round(tww*state.dca);
+    return {t:t,tw:tww,held:held,gap:gap,buy:buy};
+  }).sort(function(a,b){return b.gap-a.gap;});
 
   var rows = items.map(function(a,i){
-    var pc = portColor(a.t);
-    var buyShow = Math.round(a.buy*100)/100;
-    if (buyShow < 1) buyShow = 0;
-
-    var bgColor, borderColor, gapColor, actionColor, actionLabel;
-
-    if (a.isTrim) {
-      bgColor     = "#1a0d00";
-      borderColor = "1px solid #92400e60";
-      gapColor    = "#fbbf24";
-      actionColor = "#fbbf24";
-      actionLabel = "TRIM<br><span style='font-size:10px;color:#fbbf24;'>-"+fmt(a.trimAmt)+"</span>";
-    } else if (a.isAdd) {
-      bgColor     = "#0a1628";
-      borderColor = "1px solid #1e3a5f";
-      gapColor    = "#38bdf8";
-      actionColor = "#f1f5f9";
-      actionLabel = buyShow>0 ? fmt(buyShow) : "-";
-    } else if (a.gap < -0.02) {
-      bgColor     = "#1a0808";
-      borderColor = "1px solid #7f1d1d30";
-      gapColor    = "#f87171";
-      actionColor = "#64748b";
-      actionLabel = "HOLD";
-    } else {
-      bgColor     = "#060d1c";
-      borderColor = "1px solid transparent";
-      gapColor    = "#64748b";
-      actionColor = buyShow>0 ? "#f1f5f9" : "#64748b";
-      actionLabel = buyShow>0 ? fmt(buyShow) : "-";
-    }
-
-    var barW  = Math.min(Math.abs(a.isTrim ? a.drift : a.gap)/0.05*100, 100);
-    var barC  = a.isTrim ? "#fbbf24" : (a.gap<-0.02 ? "#f87171" : pc);
-    var gapLabel = a.isTrim
-      ? "초과 "+(a.drift*100).toFixed(1)+"%p → TRIM"
-      : (a.gap>0?"부족 ":"초과 ")+(Math.abs(a.gap)*100).toFixed(1)+"%p";
-
+    var pc=portColor(a.t);
+    var isHigh=a.gap>0.03, isOver=a.gap<-0.02;
+    var buyShow=Math.round(a.buy*100)/100;
+    var barW = Math.min(Math.abs(a.gap)/0.05*100,100);
     return [
       '<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;',
-        'background:'+bgColor+';border:'+borderColor+';">',
+        'background:'+(isHigh?"#0a1628":isOver?"#1a0808":"#060d1c")+';',
+        'border:'+(isHigh?"1px solid #1e3a5f":isOver?"1px solid #7f1d1d30":"1px solid transparent")+'">',
         '<div style="color:#64748b;font-size:9px;width:18px;">'+(i+1)+'</div>',
         '<div style="color:'+pc+';font-weight:700;font-size:13px;width:44px;">'+a.t+'</div>',
         '<div style="flex:1;">',
           '<div style="background:#0f2d4a;border-radius:3px;height:3px;">',
-            '<div style="background:'+barC+';border-radius:3px;height:3px;width:'+barW+'%;"></div>',
+            '<div style="background:'+(isOver?"#f87171":pc)+';border-radius:3px;height:3px;width:'+barW+'%;"></div>',
           '</div>',
-          '<div style="color:'+gapColor+';font-size:8px;margin-top:2px;">'+gapLabel+'</div>',
+          '<div style="color:'+(isOver?"#f87171":isHigh?"#fbbf24":"#64748b")+';font-size:8px;margin-top:2px;">',
+            (a.gap>0?"부족 ":"초과 ")+(Math.abs(a.gap)*100).toFixed(1)+'%p',
+          '</div>',
         '</div>',
         (total>0?'<div style="color:#64748b;font-size:10px;width:54px;text-align:right;">'+fmt(a.held)+'</div>':""),
         '<div style="color:#94a3b8;font-size:9px;width:38px;text-align:right;">'+(a.tw*100).toFixed(1)+'%</div>',
-        '<div style="color:'+actionColor+';font-size:12px;font-weight:700;width:58px;text-align:right;line-height:1.4;">'+actionLabel+'</div>',
+        '<div style="color:'+(isOver?"#f87171":buyShow>0?"#f1f5f9":"#64748b")+';font-size:12px;font-weight:700;width:58px;text-align:right;">',
+          (isOver?"HOLD":buyShow>0?fmt(buyShow):"-"),
+        '</div>',
       '</div>'
     ].join("");
   }).join("");
-
-  var trimCount = items.filter(function(a){return a.isTrim;}).length;
-  var trimTotal = items.reduce(function(s,a){return s+(a.isTrim?a.trimAmt:0);},0);
-  var trimBanner = (trimCount>0 && total>0)
-    ? '<div style="background:#1a0d00;border:1px solid #92400e;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;">'+
-        '<div style="font-size:18px;">⚠️</div>'+
-        '<div><div style="color:#fbbf24;font-size:12px;font-weight:700;">드리프트 TRIM 신호 '+trimCount+'종목</div>'+
-        '<div style="color:#92400e;font-size:11px;">목표비중 +5%p 초과 → 합계 약 '+fmt(trimTotal)+' 매도 후 재배분 권장</div></div>'+
-      '</div>'
-    : '';
 
   document.getElementById("tab-action").innerHTML = [
     '<div class="card" style="border-color:'+cfg.color+'40;display:flex;align-items:center;gap:12px;">',
@@ -846,16 +685,14 @@ function renderAction(rs,cfg,tw,total){
         '<div style="color:#94a3b8;font-size:10px;">P1 '+(cfg.w1*100).toFixed(0)+'% P2 '+(cfg.w2*100).toFixed(0)+'% P3 '+(cfg.w3*100).toFixed(0)+'%</div>',
       '</div>',
       '<div style="margin-left:auto;text-align:right;">',
-        '<div style="color:#fb923c;font-size:12px;font-weight:700;">DCA $'+effectiveDCA+'</div>',
-        (total>0&&effectiveDCA!==state.dca?'<div style="color:#64748b;font-size:9px;">자산구간 자동 적용 (수동: $'+state.dca+')</div>':""),
+        '<div style="color:#94a3b8;font-size:12px;font-weight:700;">DCA $'+state.dca+'</div>',
         '<div style="color:#64748b;font-size:10px;">총자산 '+(total>0?fmt(total):"미입력")+'</div>',
       '</div>',
     '</div>',
-    trimBanner,
     (total===0?'<div style="background:#0d1a0d;border:1px solid #14532d40;border-radius:10px;padding:10px;color:#94a3b8;font-size:11px;margin-bottom:10px;">잔고 탭에서 수량을 입력하면 더 정확한 매매 계획을 볼 수 있어요.</div>':""),
     '<div class="card">',
       '<div class="label">WEEKLY BUY PLAN</div>',
-      '<div style="color:#64748b;font-size:10px;margin-bottom:10px;">'+(total>0?"잔고 기반 — TRIM 우선, 목표비중 부족분 매수":"목표비중 기반 — DCA 단순 배분")+'</div>',
+      '<div style="color:#64748b;font-size:10px;margin-bottom:10px;">'+(total>0?"잔고 기반 — 목표비중 부족분 우선 매수":"목표비중 기반 — DCA 단순 배분")+'</div>',
       '<div style="display:flex;gap:6px;padding:3px 10px;margin-bottom:4px;">',
         '<div style="color:#64748b;font-size:9px;width:18px;">#</div>',
         '<div style="color:#64748b;font-size:9px;width:44px;">종목</div>',
@@ -931,148 +768,9 @@ function recordDiv(){
   save(); renderAll();
 }
 
-// ── 수익률 탭 렌더링 ─────────────────────────────────────────
-function renderPerf(total) {
-  var h = perfHistory;
-  var el = document.getElementById("tab-perf");
-
-  // KPI
-  var latestRet  = h.length ? h[h.length-1].retCum    : null;
-  var latestQqq  = h.length ? h[h.length-1].qqqRetCum : null;
-  var alpha      = (latestRet!==null && latestQqq!==null) ? (latestRet - latestQqq) : null;
-  var weeks      = h.length;
-
-  // MDD 계산
-  var mdd = 0;
-  if(h.length > 1) {
-    var peak = h[0].totalVal;
-    h.forEach(function(s){ if(s.totalVal>peak) peak=s.totalVal; var dd=(peak-s.totalVal)/peak*100; if(dd>mdd) mdd=dd; });
-  }
-
-  // KPI 카드
-  var kpiHtml = [
-    {l:"누적 수익률",  v: latestRet!==null  ? (latestRet>=0?"+":"")+latestRet.toFixed(2)+"%" : "--",  c: latestRet>=0?"#34d399":"#f87171"},
-    {l:"QQQ 누적",    v: latestQqq!==null  ? (latestQqq>=0?"+":"")+latestQqq.toFixed(2)+"%" : "--",  c: "#94a3b8"},
-    {l:"알파",         v: alpha!==null      ? (alpha>=0?"+":"")+alpha.toFixed(2)+"%p"        : "--",  c: alpha>=0?"#34d399":"#f87171"},
-    {l:"MDD",          v: mdd>0 ? "-"+mdd.toFixed(1)+"%" : "--",                                       c: "#fbbf24"},
-    {l:"스냅샷",       v: weeks+"주",                                                                   c: "#38bdf8"},
-    {l:"현재 평가",    v: total>0 ? fmt(total) : "--",                                                  c: "#f1f5f9"},
-  ].map(function(k){
-    return '<div style="background:#060d1c;border-radius:10px;padding:10px;text-align:center;">'+
-      '<div style="color:#64748b;font-size:9px;margin-bottom:4px;">'+k.l+'</div>'+
-      '<div style="color:'+k.c+';font-size:16px;font-weight:700;">'+k.v+'</div>'+
-    '</div>';
-  }).join("");
-
-  // SVG 차트 (라이브러리 없이 순수 SVG)
-  var chartHtml = "";
-  if(h.length >= 2) {
-    var W=320, H=140, PL=36, PR=10, PT=10, PB=24;
-    var cw=W-PL-PR, ch=H-PT-PB;
-    var rets    = h.map(function(s){return s.retCum;});
-    var qqqRets = h.map(function(s){return s.qqqRetCum;});
-    var allVals = rets.concat(qqqRets);
-    var minV = Math.min.apply(null,allVals), maxV = Math.max.apply(null,allVals);
-    var pad  = Math.max(2, (maxV-minV)*0.1);
-    minV -= pad; maxV += pad;
-    var range = maxV - minV || 1;
-
-    function toX(i){ return PL + (i/(h.length-1))*cw; }
-    function toY(v){ return PT + ch - ((v-minV)/range)*ch; }
-
-    function makePath(vals, color, dashed) {
-      var d = vals.map(function(v,i){ return (i===0?"M":"L")+toX(i).toFixed(1)+","+toY(v).toFixed(1); }).join(" ");
-      return '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(dashed?"1.5":"2.5")+'" '+(dashed?'stroke-dasharray="4,3"':'')+' />';
-    }
-    // 영역 채우기 (포트)
-    var areaD = rets.map(function(v,i){ return (i===0?"M":"L")+toX(i).toFixed(1)+","+toY(v).toFixed(1); }).join(" ")
-      + " L"+toX(h.length-1).toFixed(1)+","+(PT+ch)+" L"+PL+","+(PT+ch)+" Z";
-
-    // Y축 레이블
-    var yTicks = [minV, (minV+maxV)/2, maxV].map(function(v){
-      return '<text x="'+(PL-4)+'" y="'+toY(v).toFixed(1)+'" fill="#475569" font-size="8" text-anchor="end" dominant-baseline="middle">'+(v>=0?"+":"")+v.toFixed(0)+'%</text>';
-    }).join("");
-
-    // X축 레이블 (최대 6개)
-    var step = Math.max(1, Math.floor(h.length/6));
-    var xTicks = h.filter(function(_,i){ return i%step===0||i===h.length-1; }).map(function(s,_,arr){
-      var i = h.indexOf(s);
-      return '<text x="'+toX(i).toFixed(1)+'" y="'+(PT+ch+14)+'" fill="#475569" font-size="8" text-anchor="middle">'+s.date.slice(5)+'</text>';
-    }).join("");
-
-    // 0선
-    var zeroY = toY(0);
-    var zeroLine = (zeroY>=PT&&zeroY<=PT+ch) ? '<line x1="'+PL+'" y1="'+zeroY.toFixed(1)+'" x2="'+(PL+cw)+'" y2="'+zeroY.toFixed(1)+'" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="2,2"/>' : "";
-
-    chartHtml = '<div style="overflow-x:auto;"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:'+W+'px;display:block;">'+
-      '<rect width="'+W+'" height="'+H+'" fill="#060d1c" rx="8"/>'+
-      zeroLine+
-      '<path d="'+areaD+'" fill="#34d399" opacity="0.08"/>'+
-      makePath(qqqRets,"#94a3b8",true)+
-      makePath(rets,"#34d399",false)+
-      yTicks+xTicks+
-      // 범례
-      '<line x1="'+(PL)+'" y1="'+(PT+ch+22)+'" x2="'+(PL+16)+'" y2="'+(PT+ch+22)+'" stroke="#34d399" stroke-width="2"/>'+
-      '<text x="'+(PL+19)+'" y="'+(PT+ch+22)+'" fill="#34d399" font-size="8" dominant-baseline="middle">내 포트</text>'+
-      '<line x1="'+(PL+60)+'" y1="'+(PT+ch+22)+'" x2="'+(PL+76)+'" y2="'+(PT+ch+22)+'" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3"/>'+
-      '<text x="'+(PL+79)+'" y="'+(PT+ch+22)+'" fill="#94a3b8" font-size="8" dominant-baseline="middle">QQQ</text>'+
-    '</svg></div>';
-  } else {
-    chartHtml = '<div style="color:#475569;font-size:12px;text-align:center;padding:40px 0;">저장 버튼을 2회 이상 눌러야 차트가 표시됩니다.</div>';
-  }
-
-  // 테이블
-  var tableRows = h.slice().reverse().map(function(s){
-    var rc = s.ret>=0?"#34d399":"#f87171";
-    var qc = s.qqqRet>=0?"#94a3b8":"#f87171";
-    var ac = (s.retCum-s.qqqRetCum)>=0?"#34d399":"#f87171";
-    return '<tr style="border-bottom:1px solid #0f2d4a20;">'+
-      '<td style="padding:6px 8px;color:#64748b;font-size:10px;">'+s.date+'</td>'+
-      '<td style="padding:6px 8px;color:#94a3b8;font-size:11px;text-align:right;">'+fmt(s.totalVal)+'</td>'+
-      '<td style="padding:6px 8px;color:#64748b;font-size:11px;text-align:right;">'+fmt(s.totalInv)+'</td>'+
-      '<td style="padding:6px 8px;color:'+rc+';font-size:11px;font-weight:700;text-align:right;">'+(s.ret>=0?"+":"")+s.ret.toFixed(1)+'%</td>'+
-      '<td style="padding:6px 8px;color:'+qc+';font-size:11px;text-align:right;">'+(s.qqqRet>=0?"+":"")+s.qqqRet.toFixed(1)+'%</td>'+
-      '<td style="padding:6px 8px;color:'+ac+';font-size:11px;font-weight:700;text-align:right;">'+(s.retCum>=0?"+":"")+s.retCum.toFixed(1)+'%</td>'+
-    '</tr>';
-  }).join("");
-
-  el.innerHTML = [
-    // KPI
-    '<div class="card"><div class="label">PERFORMANCE SUMMARY</div>'+
-      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">'+kpiHtml+'</div>'+
-    '</div>',
-    // 차트
-    '<div class="card"><div class="label">누적 수익률 추이</div>'+chartHtml+'</div>',
-    // 테이블
-    h.length > 0 ? [
-      '<div class="card"><div class="label">주간 스냅샷 기록</div>',
-      '<div style="overflow-x:auto;">',
-      '<table style="width:100%;border-collapse:collapse;font-family:monospace;">',
-      '<thead><tr>',
-        ['날짜','평가금액','투입원금','주간수익','QQQ주간','누적수익'].map(function(h){
-          return '<th style="padding:6px 8px;color:#475569;font-size:9px;text-align:right;border-bottom:1px solid #1e3a5f;font-weight:600;">'+h+'</th>';
-        }).join(""),
-      '</tr></thead>',
-      '<tbody>'+tableRows+'</tbody>',
-      '</table></div></div>',
-    ].join("") : '<div class="card" style="color:#64748b;font-size:12px;text-align:center;padding:20px;">아직 기록이 없습니다.<br>시장 데이터 조회 후 💾 저장을 눌러주세요.</div>',
-    // 초기화 버튼
-    '<div style="text-align:right;margin-top:4px;">'+
-      '<button onclick="if(confirm(\'수익률 기록을 모두 삭제할까요?\'))clearPerf()" style="padding:6px 12px;border-radius:8px;border:1px solid #7f1d1d;background:transparent;color:#f87171;font-family:monospace;font-size:11px;cursor:pointer;">🗑 기록 초기화</button>'+
-    '</div>',
-  ].join("");
-}
-
-function clearPerf() {
-  perfHistory = [];
-  savePerfHistory();
-  renderAll();
-}
-
 // ── 초기화 ──────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function() {
   load();
-  loadPerfHistory();
   renderAll();
 });
 </script>
