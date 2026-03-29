@@ -1745,7 +1745,7 @@ document.querySelectorAll('#wfaRows').forEach(el => barObs.observe(el));
 
 // ── 실시간 데이터 로딩 ──────────────────────────────────────────
 
-const YF_BASE = '/functions/yahoo';
+const YF_BASE = '/yahoo';
 
 // Cloudflare Pages Function 호출
 async function fetchYF(symbol, range = '2y', interval = '1d') {
