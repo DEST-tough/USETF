@@ -1,9 +1,12 @@
 // Cloudflare Pages Function: functions/yahoo.js
 export async function onRequest(context) {
   const url    = new URL(context.request.url);
-  const symbol = url.searchParams.get('symbol');
-  const range  = url.searchParams.get('range')    || '1y';
+  let symbol   = url.searchParams.get('symbol') || '';
+  const range    = url.searchParams.get('range')    || '1y';
   const interval = url.searchParams.get('interval') || '1d';
+
+  // %5E → ^ 변환 (브라우저가 ^를 자동으로 %5E로 인코딩하는 문제 대응)
+  symbol = symbol.replace(/%5E/gi, '^');
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -37,7 +40,7 @@ export async function onRequest(context) {
     return new Response(data, {
       headers: {
         ...corsHeaders,
-        'Cache-Control': 'public, max-age=300', // 5분 캐시
+        'Cache-Control': 'public, max-age=300',
       },
     });
   } catch (e) {
