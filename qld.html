@@ -1969,24 +1969,24 @@ async function fetchAndCompute() {
     if (v9sel) v9sel.value = v9reg;
     if (tsel)  tsel.value  = tsInfo.ts;
     if (psel)  psel.value  = ind.qld.toFixed(2);
-    calcShares();
 
   } catch (err) {
     console.warn('데이터 로딩 실패:', err.message || err);
-    // 지표는 표시됐을 수 있으므로 상태만 업데이트
     statusEl.className = 'data-status error';
     statusEl.textContent = '⚠️ 일부 로딩 실패';
-    // today-shares가 아직 '—' 상태일 때만 수동 입력 표시
     const sharesEl = document.getElementById('today-shares');
-    if (sharesEl.textContent === '—') {
+    const descEl2  = document.getElementById('today-desc');
+    if (sharesEl && sharesEl.textContent === '—') {
       sharesEl.textContent = '수동 입력';
-      document.getElementById('today-desc').innerHTML =
+      if (descEl2) descEl2.innerHTML =
         '<strong>자동 데이터 로딩에 실패했습니다.</strong><br>아래 계산기에 직접 레짐과 가격을 입력하세요.';
       updateTicker([]);
     }
   } finally {
     refreshEl.className = '';
     refreshEl.textContent = '↻';
+    // try 성공/실패 무관하게 계산기 갱신 시도
+    try { calcShares(); } catch(e) {}
   }
 }
 
