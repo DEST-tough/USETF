@@ -1951,18 +1951,24 @@ async function fetchAndCompute() {
     }
     descEl.innerHTML = descMsg;
 
-    document.getElementById('today-cost').textContent = result.total > 0 ? '$' + result.cost.toFixed(2) : '—';
+    const costEl = document.getElementById('today-cost');
+    const updatedEl = document.getElementById('today-updated');
+    if (costEl) costEl.textContent = result.total > 0 ? '$' + result.cost.toFixed(2) : '—';
     const now = new Date();
-    document.getElementById('today-updated').textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 갱신`;
+    if (updatedEl) updatedEl.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 갱신`;
 
     statusEl.className = 'data-status ok';
     statusEl.textContent = '✅ 실시간 데이터';
 
     // 계산기 자동 채우기
-    document.getElementById('calc-v7-regime').value = v7reg;
-    document.getElementById('calc-v9-regime').value = v9reg;
-    document.getElementById('calc-timing').value = tsInfo.ts;
-    document.getElementById('calc-price').value  = ind.qld.toFixed(2);
+    const v7sel = document.getElementById('calc-v7-regime');
+    const v9sel = document.getElementById('calc-v9-regime');
+    const tsel  = document.getElementById('calc-timing');
+    const psel  = document.getElementById('calc-price');
+    if (v7sel) v7sel.value = v7reg;
+    if (v9sel) v9sel.value = v9reg;
+    if (tsel)  tsel.value  = tsInfo.ts;
+    if (psel)  psel.value  = ind.qld.toFixed(2);
     calcShares();
 
   } catch (err) {
