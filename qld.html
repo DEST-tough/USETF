@@ -2015,8 +2015,7 @@ function updateTicker(items) {
   }).join('');
 }
 
-// 페이지 로드 시 자동 실행 + 30분마다 갱신
-fetchAndCompute();
+// 30분마다 자동 갱신
 setInterval(fetchAndCompute, 30 * 60 * 1000);
 
 
@@ -2064,24 +2063,27 @@ function calcShares() {
   const total = v7shares + v9shares + deployShares;
   const cost  = total * (price + SLIPPAGE) * COMM;
 
-  // 결과 업데이트
-  document.getElementById('res-v7').textContent    = v7shares.toFixed(1) + '주';
-  document.getElementById('res-v7-sub').textContent = v7sub;
-  document.getElementById('res-v9').textContent    = v9shares.toFixed(1) + '주';
-  document.getElementById('res-v9-sub').textContent = v9sub;
-  document.getElementById('res-deploy').textContent = deployShares.toFixed(1) + '주';
-  document.getElementById('res-deploy-sub').textContent = deploySub;
-  document.getElementById('res-total').textContent  = total.toFixed(1) + '주';
-  document.getElementById('res-cost').textContent   = '예상 비용: $' + cost.toFixed(2);
+  // 결과 업데이트 (null 체크)
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('res-v7',         v7shares.toFixed(1) + '주');
+  setEl('res-v7-sub',     v7sub);
+  setEl('res-v9',         v9shares.toFixed(1) + '주');
+  setEl('res-v9-sub',     v9sub);
+  setEl('res-deploy',     deployShares.toFixed(1) + '주');
+  setEl('res-deploy-sub', deploySub);
+  setEl('res-total',      total.toFixed(1) + '주');
+  setEl('res-cost',       '예상 비용: $' + cost.toFixed(2));
 
   // 색상
   const totalEl = document.getElementById('res-total');
-  totalEl.className = 'calc-result-value ' + (total === 0 ? 'red' : total >= 10 ? 'gold' : total >= 5 ? 'green' : 'accent');
+  if (totalEl) totalEl.className = 'calc-result-value ' + (total === 0 ? 'red' : total >= 10 ? 'gold' : total >= 5 ? 'green' : 'accent');
 
   // 액션 바
   const actionBar = document.getElementById('calc-action');
-  document.getElementById('action-shares').textContent = total.toFixed(1) + '주';
-  document.getElementById('action-cost').textContent   = '$' + cost.toFixed(2);
+  const actionShares = document.getElementById('action-shares');
+  const actionCost   = document.getElementById('action-cost');
+  if (actionShares) actionShares.textContent = total.toFixed(1) + '주';
+  if (actionCost)   actionCost.textContent   = '$' + cost.toFixed(2);
 
   let tag, msg;
   if (total === 0) {
@@ -2101,11 +2103,13 @@ function calcShares() {
     tag = '<span class="action-tag buy">매수</span>';
     msg = '오늘 <strong>' + total.toFixed(1) + '주</strong>를 종가 근처에서 매수하세요. 예상 비용: <strong>$' + cost.toFixed(2) + '</strong>';
   }
-  actionBar.innerHTML = tag + ' ' + msg;
+  if (actionBar) actionBar.innerHTML = tag + ' ' + msg;
 }
 
-// 초기 실행
-calcShares();
+// 초기 실행 — DOM 완전 로드 후
+document.addEventListener('DOMContentLoaded', () => { calcShares(); fetchAndCompute(); });
+// 혹시 이미 로드된 경우 대비
+if (document.readyState !== 'loading') { calcShares(); }
 </script>
 </body>
 </html>
