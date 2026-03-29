@@ -1755,7 +1755,14 @@ async function fetchYF(symbol, range = '2y', interval = '1d') {
   const data = await res.json();
   if (!data?.chart?.result?.[0]) throw new Error(`No data for ${symbol}`);
   const chart  = data.chart.result[0];
-  const closes = chart.indicators.adjclose?.[0]?.adjclose || chart.indicators.quote[0].close;
+  // adjclose 우선, 없으면 quote.close 사용, null 제거
+  let closes;
+  if (chart.indicators.adjclose?.[0]?.adjclose) {
+    closes = chart.indicators.adjclose[0].adjclose.filter(v => v != null && !isNaN(v));
+  } else {
+    closes = chart.indicators.quote[0].close.filter(v => v != null && !isNaN(v));
+  }
+  if (closes.length < 20) throw new Error(`데이터 부족: ${symbol} (${closes.length}개)`);
   return { timestamps: chart.timestamp, closes };
 }
 
@@ -1868,7 +1875,7 @@ async function fetchAndCompute() {
       fetchYF('QLD', '2y', '1d'),
       fetchYF('SPY', '2y', '1d'),
       fetchYF('QQQ', '2y', '1d'),
-      fetchYF('%5EVIX', '6mo', '1d'),
+      fetchYF('%5EVIX', '1y', '1d'),
     ]);
 
     const qld = dQLD.closes.filter(v => v !== null);
