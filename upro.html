@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UPRO">
+<meta name="theme-color" content="#080c10">
+<title>UPRO Final Signal</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
+
+:root {
+  --bg:     #080c10;
+  --bg2:    #0d1318;
+  --bg3:    #131a22;
+  --border: #1a2a38;
+  --text:   #c8d8e8;
+  --muted:  #4a6070;
+  --green:  #00e5a0;
+  --red:    #ff3d5a;
+  --yellow: #ffd240;
+  --blue:   #3d9fff;
+  --amber:  #ff9500;
+  --purple: #9b6dff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  padding: 16px;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* 헤더 */
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -1px;
+  color: #fff;
+}
+.logo span { color: var(--amber); }
+.subtitle { font-size: 9px; color: var(--muted); letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
+
+.header-right { text-align: right; }
+.last-update { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+.v-tag {
+  display: inline-block; padding: 3px 10px;
+  border: 1px solid var(--border); border-radius: 2px;
+  font-size: 9px; letter-spacing: 1.5px; color: var(--amber); text-transform: uppercase;
+}
+
+/* 갱신 버튼 */
+.refresh-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+
+.refresh-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg2); border: 1px solid var(--amber);
+  color: var(--amber); font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 2px; font-weight: 700;
+  padding: 11px 20px; cursor: pointer; border-radius: 3px;
+  text-transform: uppercase; transition: background 0.2s;
+  -webkit-appearance: none;
+}
+.refresh-btn:active { background: rgba(255,149,0,0.08); }
+.refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.spinner {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,149,0,0.3);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none; flex-shrink: 0;
+}
+.loading .spinner { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.status-msg { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; }
+.status-msg.ok  { color: var(--green); }
+.status-msg.err { color: var(--red); }
+
+/* 파라미터 칩 */
+.params-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.param-chip {
+  padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 2px; font-size: 9px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase;
+}
+.param-chip span { color: var(--amber); font-weight: 700; }
+
+/* 메인 신호 카드 */
+.signal-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 24px;
+  margin-bottom: 12px; position: relative; overflow: hidden;
+  transition: border-color 0.5s;
+}
+.signal-card.LONG  { border-color: var(--green); }
+.signal-card.CAUTION { border-color: var(--amber); }
+.signal-card.CASH  { border-color: var(--yellow); }
+.signal-card.STOP  { border-color: var(--red); }
+.signal-card.ERROR { border-color: var(--red); }
+
+.signal-card::before {
+  content: ''; position: absolute; inset: 0; opacity: 0.05; transition: background 0.5s;
+}
+.signal-card.LONG::before    { background: var(--green); }
+.signal-card.CAUTION::before { background: var(--amber); }
+.signal-card.CASH::before    { background: var(--yellow); }
+.signal-card.STOP::before    { background: var(--red); }
+.signal-card.ERROR::before   { background: var(--red); }
+
+.signal-label { font-size: 9px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; font-weight: 700; }
+
+.signal-main { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+
+.signal-text {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 52px; letter-spacing: -2px; line-height: 1; transition: color 0.5s;
+}
+.LONG     .signal-text { color: var(--green); }
+.CAUTION  .signal-text { color: var(--amber); }
+.CASH     .signal-text { color: var(--yellow); }
+.STOP     .signal-text { color: var(--red); }
+.ERROR    .signal-text { color: var(--red); }
+
+.signal-detail { flex: 1; min-width: 180px; }
+.weight-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.weight-label { font-size: 11px; color: var(--muted); width: 52px; letter-spacing: 1px; font-weight: 700; }
+.weight-bar-wrap { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.weight-bar { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+.weight-val { font-size: 14px; font-weight: 700; width: 44px; text-align: right; color: #fff; }
+
+/* 지표 그리드 */
+.indicators-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 12px;
+}
+.indicator-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px 16px;
+}
+.ind-label { font-size: 10px; letter-spacing: 1px; color: #7a9ab8; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+.ind-value { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.5px; color: #fff; margin-bottom: 6px; }
+.ind-status { font-size: 11px; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot.green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+.dot.red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+.dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.dot.amber  { background: var(--amber);  box-shadow: 0 0 6px var(--amber); }
+.dot.muted  { background: var(--muted); }
+
+/* ATR 시각화 */
+.atr-vis-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px 16px; margin-bottom: 12px;
+}
+.atr-vis-label { font-size: 10px; letter-spacing: 1px; color: #7a9ab8; text-transform: uppercase; margin-bottom: 12px; font-weight: 700; }
+.atr-track-wrap { position: relative; height: 48px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+.atr-zone-safe { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(0,229,160,0.08); transition: width 0.8s ease; }
+.atr-zone-stop { position: absolute; right: 0; top: 0; bottom: 0; width: 2px; background: var(--red); }
+.atr-price-marker {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 32px; background: var(--amber);
+  border-radius: 2px; transition: left 0.8s ease;
+}
+.atr-stop-marker {
+  position: absolute; top: 0; bottom: 0;
+  border-left: 1px dashed var(--red);
+  transition: left 0.8s ease;
+}
+.atr-label-safe { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--green); letter-spacing: 1px; }
+.atr-label-stop { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--red); letter-spacing: 1px; }
+.atr-stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.atr-stat { text-align: center; }
+.atr-stat-lbl { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.atr-stat-val { font-size: 13px; font-weight: 700; }
+
+/* DCA 배수 */
+.dca-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px 16px; margin-bottom: 12px;
+}
+.dca-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.dca-label { font-size: 10px; letter-spacing: 1px; color: #7a9ab8; text-transform: uppercase; font-weight: 700; }
+.dca-mult-big { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -1px; color: var(--amber); }
+.dca-scale { display: flex; gap: 3px; margin-bottom: 8px; }
+.dca-blk {
+  flex: 1; height: 24px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 2px; display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: var(--muted); transition: all 0.4s;
+}
+.dca-blk.on { background: rgba(255,149,0,0.15); border-color: var(--amber); color: var(--amber); font-weight: 700; }
+.dca-info { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+
+/* 체크리스트 */
+.checklist { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 18px 20px; margin-bottom: 12px; }
+.checklist-title { font-size: 10px; letter-spacing: 2px; color: #7a9ab8; text-transform: uppercase; margin-bottom: 14px; font-weight: 700; }
+.check-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.check-item:last-child { border-bottom: none; }
+.check-left { display: flex; align-items: center; gap: 10px; }
+.check-icon { width: 22px; height: 22px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.check-icon.pass    { background: rgba(0,229,160,0.12);  color: var(--green); }
+.check-icon.fail    { background: rgba(255,61,90,0.12);   color: var(--red); }
+.check-icon.neutral { background: rgba(255,149,0,0.12);   color: var(--amber); }
+.check-name  { font-size: 13px; font-weight: 600; color: #d8eaf8; }
+.check-desc  { font-size: 10px; color: #6a8a9e; margin-top: 2px; }
+.check-value { font-size: 11px; font-weight: 700; text-align: right; max-width: 160px; }
+.check-value.pass    { color: var(--green); }
+.check-value.fail    { color: var(--red); }
+.check-value.neutral { color: var(--amber); }
+
+/* 신호 근거 */
+.reasons-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid var(--amber); border-radius: 6px; padding: 16px 20px; margin-bottom: 12px;
+}
+.reasons-label { font-size: 9px; letter-spacing: 2px; color: var(--amber); text-transform: uppercase; margin-bottom: 10px; font-weight: 700; }
+.reason-item { font-size: 12px; line-height: 2.2; color: #d8eaf8; display: flex; align-items: flex-start; gap: 8px; font-weight: 500; }
+.reason-item::before { content: '->'; color: var(--amber); flex-shrink: 0; font-weight: 700; }
+
+/* 전략 파라미터 요약 */
+.strategy-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px 18px; margin-bottom: 12px;
+  font-size: 10px; color: var(--muted); line-height: 2;
+}
+.strategy-box strong { color: #7a9ab8; }
+
+.disclaimer { font-size: 9px; color: var(--muted); line-height: 1.8; padding: 12px 16px; border: 1px solid var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <div class="logo">UP<span>RO</span></div>
+      <div class="subtitle">Final Strategy Signal</div>
+    </div>
+    <div class="header-right">
+      <div class="last-update" id="lastUpdate">갱신 버튼을 눌러주세요</div>
+      <div class="v-tag">MA210 + ATR×3</div>
+    </div>
+  </header>
+
+  <!-- 갱신 버튼 -->
+  <div class="refresh-wrap">
+    <button class="refresh-btn" id="refreshBtn" onclick="loadSignal()">
+      <div class="spinner" id="spinner"></div>
+      <span id="btnLabel">↻ 신호 갱신</span>
+    </button>
+    <span class="status-msg" id="statusMsg">장 마감 후 갱신 권장</span>
+  </div>
+
+  <!-- 파라미터 칩 -->
+  <div class="params-row">
+    <div class="param-chip">MA <span>210일</span></div>
+    <div class="param-chip">VIX <span>&lt;22</span></div>
+    <div class="param-chip">주의포지션 <span>79%</span></div>
+    <div class="param-chip">ATR <span>10d×3.0</span></div>
+    <div class="param-chip">쿨다운 <span>6일</span></div>
+  </div>
+
+  <!-- 메인 신호 카드 -->
+  <div class="signal-card" id="signalCard">
+    <div class="signal-label">현재 포지션 신호</div>
+    <div class="signal-main">
+      <div class="signal-text" id="signalText">—</div>
+      <div class="signal-detail">
+        <div class="weight-row">
+          <span class="weight-label">UPRO</span>
+          <div class="weight-bar-wrap"><div class="weight-bar" id="uproBar" style="width:0%;background:var(--amber)"></div></div>
+          <span class="weight-val" id="uproPct">—</span>
+        </div>
+        <div class="weight-row">
+          <span class="weight-label">CASH</span>
+          <div class="weight-bar-wrap"><div class="weight-bar" id="cashBar" style="width:0%;background:var(--muted)"></div></div>
+          <span class="weight-val" id="cashPct">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 지표 카드 -->
+  <div class="indicators-grid">
+    <div class="indicator-card">
+      <div class="ind-label">UPRO 종가</div>
+      <div class="ind-value" id="uproPrice">—</div>
+      <div class="ind-status"><span class="dot muted" id="priceDot"></span><span id="priceChange" style="color:var(--muted)">—</span></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">SPY MA210 대비</div>
+      <div class="ind-value" id="maVal">—</div>
+      <div class="ind-status"><span class="dot muted" id="maDot"></span><span id="maStatus" style="color:var(--muted)">—</span></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">VIX</div>
+      <div class="ind-value" id="vixVal">—</div>
+      <div class="ind-status"><span class="dot muted" id="vixDot"></span><span id="vixStatus" style="color:var(--muted)">—</span></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">ATR(10) 고점대비</div>
+      <div class="ind-value" id="atrDdVal">—</div>
+      <div class="ind-status"><span class="dot muted" id="atrDot"></span><span id="atrStatus" style="color:var(--muted)">—</span></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">SPY 1M 모멘텀</div>
+      <div class="ind-value" id="mom1mVal">—</div>
+      <div class="ind-status"><span class="dot muted" id="momDot"></span><span id="momStatus" style="color:var(--muted)">—</span></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">DCA 배수</div>
+      <div class="ind-value" id="dcaValInd">—</div>
+      <div class="ind-status"><span class="dot muted" id="dcaDot"></span><span id="dcaStatus" style="color:var(--muted)">—</span></div>
+    </div>
+  </div>
+
+  <!-- ATR 트레일링 스탑 시각화 -->
+  <div class="atr-vis-card">
+    <div class="atr-vis-label">ATR 트레일링 스탑 위치</div>
+    <div class="atr-track-wrap">
+      <div class="atr-zone-safe" id="atrZoneSafe" style="width:80%"></div>
+      <div class="atr-stop-marker" id="atrStopMarker" style="left:80%"></div>
+      <div class="atr-price-marker" id="atrPriceMarker" style="left:85%"></div>
+      <div class="atr-label-safe">SAFE</div>
+      <div class="atr-label-stop">STOP</div>
+    </div>
+    <div class="atr-stats-row">
+      <div class="atr-stat">
+        <div class="atr-stat-lbl">현재가</div>
+        <div class="atr-stat-val" id="atrCurrentPrice" style="color:var(--amber)">—</div>
+      </div>
+      <div class="atr-stat">
+        <div class="atr-stat-lbl">스탑라인</div>
+        <div class="atr-stat-val" id="atrStopVal" style="color:var(--red)">—</div>
+      </div>
+      <div class="atr-stat">
+        <div class="atr-stat-lbl">버퍼</div>
+        <div class="atr-stat-val" id="atrBuffer" style="color:var(--green)">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DCA 배수 -->
+  <div class="dca-card">
+    <div class="dca-header">
+      <div class="dca-label">이번 달 적립 배수 (모멘텀 DCA)</div>
+      <div class="dca-mult-big" id="dcaMultBig">—</div>
+    </div>
+    <div class="dca-scale" id="dcaScale">
+      <div class="dca-blk" data-v="0">0x</div>
+      <div class="dca-blk" data-v="0.4">0.4x</div>
+      <div class="dca-blk" data-v="0.7">0.7x</div>
+      <div class="dca-blk" data-v="1.0">1.0x</div>
+      <div class="dca-blk" data-v="1.2">1.2x</div>
+      <div class="dca-blk" data-v="1.5">1.5x</div>
+      <div class="dca-blk" data-v="1.8">1.8x</div>
+      <div class="dca-blk" data-v="2.0">2.0x</div>
+    </div>
+    <div class="dca-info">
+      <span>1M: <span id="mom1mDca">—</span></span>
+      <span>3M: <span id="mom3mDca">—</span></span>
+      <span>MA200거리: <span id="maDistDca">—</span></span>
+    </div>
+  </div>
+
+  <!-- 체크리스트 -->
+  <div class="checklist">
+    <div class="checklist-title">진입 조건 체크</div>
+    <div class="check-item">
+      <div class="check-left"><div class="check-icon neutral" id="c1i">?</div>
+        <div><div class="check-name">SPY MA210 위</div><div class="check-desc">SPY > 210일 이동평균</div></div></div>
+      <div class="check-value neutral" id="c1v">—</div>
+    </div>
+    <div class="check-item">
+      <div class="check-left"><div class="check-icon neutral" id="c2i">?</div>
+        <div><div class="check-name">VIX 안전</div><div class="check-desc">VIX &lt; 22.0</div></div></div>
+      <div class="check-value neutral" id="c2v">—</div>
+    </div>
+    <div class="check-item">
+      <div class="check-left"><div class="check-icon neutral" id="c3i">?</div>
+        <div><div class="check-name">ATR 스탑 안전</div><div class="check-desc">현재가 > 고점 - ATR×3.0</div></div></div>
+      <div class="check-value neutral" id="c3v">—</div>
+    </div>
+    <div class="check-item">
+      <div class="check-left"><div class="check-icon neutral" id="c4i">✓</div>
+        <div><div class="check-name">모멘텀 DCA</div><div class="check-desc">1M+3M 모멘텀 기반 적립 배수</div></div></div>
+      <div class="check-value neutral" id="c4v">—</div>
+    </div>
+    <div class="check-item">
+      <div class="check-left"><div class="check-icon neutral" id="c5i">?</div>
+        <div><div class="check-name">쿨다운</div><div class="check-desc">신호 변경 후 6일 대기</div></div></div>
+      <div class="check-value neutral" id="c5v">—</div>
+    </div>
+  </div>
+
+  <!-- 신호 근거 -->
+  <div class="reasons-box">
+    <div class="reasons-label">신호 근거</div>
+    <div id="reasonsList"><div class="reason-item">갱신 버튼을 눌러 데이터를 불러오세요</div></div>
+  </div>
+
+  <!-- 전략 요약 -->
+  <div class="strategy-box">
+    <strong>최종 전략</strong> &nbsp; MA210 + VIX&lt;22 + 모멘텀DCA + ATR(10d×3.0) 트레일링 스탑<br>
+    <strong>백테스트 성과</strong> &nbsp; CAGR 45.11% / MDD -36.58% / Score 1.233 / 샤프 1.259<br>
+    <strong>검증 기간</strong> &nbsp; 2010~2025 (Walk-Forward 75% 우세)
+  </div>
+
+  <div class="disclaimer">
+    ※ 백테스트 기반 전략 신호입니다. 실제 투자 권유가 아니며 모든 투자 결정의 책임은 본인에게 있습니다. 장 마감 후(한국 새벽 6시~) 갱신 권장.
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// 전략 파라미터
+// ════════════════════════════════════════════════════════
+var MA_WIN    = 210;
+var VIX_THRESH = 22.0;
+var POS_CAUTION = 0.79;
+var COOLDOWN  = 6;
+var ATR_N     = 10;
+var ATR_MULT  = 3.0;
+var ATR_PEAK_WIN = 60;  // 고점 추적 윈도우
+
+// ════════════════════════════════════════════════════════
+// Yahoo Finance (기존 yahoo.js 프록시 사용)
+// ════════════════════════════════════════════════════════
+async function yahooQuote(symbol, range) {
+  range = range || '2y';
+  var urls = [
+    '/yahoo?symbol=' + encodeURIComponent(symbol) + '&range=' + range,
+    'https://api.allorigins.win/get?url=' + encodeURIComponent(
+      'https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=' + range
+    )
+  ];
+  var lastErr;
+  for (var i = 0; i < urls.length; i++) {
+    try {
+      var res = await fetch(urls[i]);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var text = await res.text();
+      var raw;
+      try {
+        var maybe = JSON.parse(text);
+        raw = maybe.contents ? JSON.parse(maybe.contents) : maybe;
+      } catch(e) { throw new Error('JSON 파싱 실패'); }
+      if (!raw.chart || !raw.chart.result || !raw.chart.result[0])
+        throw new Error('데이터 없음');
+      var result = raw.chart.result[0];
+      var meta   = result.meta;
+      var q      = result.indicators.quote[0];
+      var closes = q.close.map(function(v){ return v; });
+      var highs  = q.high.map(function(v){ return v; });
+      var lows   = q.low.map(function(v){ return v; });
+      // null 제거
+      var valid = [];
+      for (var j = 0; j < closes.length; j++) {
+        if (closes[j] != null && highs[j] != null && lows[j] != null)
+          valid.push({ c: closes[j], h: highs[j], l: lows[j] });
+      }
+      return { meta: meta, bars: valid };
+    } catch(e) { lastErr = e; }
+  }
+  throw new Error('조회 실패: ' + (lastErr ? lastErr.message : 'unknown'));
+}
+
+// ════════════════════════════════════════════════════════
+// 지표 계산
+// ════════════════════════════════════════════════════════
+function calcMA(arr, n) {
+  if (arr.length < n) return null;
+  var sum = 0;
+  for (var i = arr.length - n; i < arr.length; i++) sum += arr[i];
+  return sum / n;
+}
+
+function calcATR(bars, n) {
+  // 마지막 n개의 TR 평균
+  if (bars.length < n + 1) return null;
+  var slice = bars.slice(bars.length - n - 1);
+  var sum = 0;
+  for (var i = 1; i <= n; i++) {
+    var h = slice[i].h, l = slice[i].l, pc = slice[i-1].c;
+    sum += Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+  }
+  return sum / n;
+}
+
+function calcDcaMult(mom1m, mom3m, maDist) {
+  var mom = mom1m * 0.5 + mom3m * 0.5;
+  var base;
+  if      (mom >  0.10) base = 1.8;
+  else if (mom >  0.05) base = 1.5;
+  else if (mom >  0.02) base = 1.2;
+  else if (mom > -0.02) base = 1.0;
+  else if (mom > -0.06) base = 0.7;
+  else if (mom > -0.12) base = 0.4;
+  else                  base = 0.0;
+
+  var adj;
+  if      (maDist >  0.10) adj = -0.2;
+  else if (maDist >  0.05) adj = -0.1;
+  else if (maDist >= 0.00) adj =  0.0;
+  else if (maDist > -0.05) adj =  0.1;
+  else                     adj = -0.1;
+
+  return Math.min(2.0, Math.max(0.0, base + adj));
+}
+
+// ════════════════════════════════════════════════════════
+// 포지션 시뮬레이션 (쿨다운 포함)
+// ════════════════════════════════════════════════════════
+function simulateFinal(spyBars, vixCloses) {
+  var n = Math.min(spyBars.length, vixCloses.length);
+  var spy  = spyBars.slice(-Math.min(n, 500));
+  var vix  = vixCloses.slice(-Math.min(n, 500));
+  var spyC = spy.map(function(b){ return b.c; });
+
+  var pos = 0, lastChange = -999, peak = 0, forcedOut = false;
+
+  for (var i = MA_WIN; i < spy.length; i++) {
+    var c       = spy[i].c;
+    var ma210   = calcMA(spyC.slice(0, i+1), MA_WIN);
+    var vixNow  = vix[i];
+    var atr10   = calcATR(spy.slice(0, i+1), ATR_N);
+
+    if (!ma210 || !vixNow || !atr10) continue;
+
+    var aboveMA  = c > ma210;
+    var vixSafe  = vixNow < VIX_THRESH;
+
+    var baseTarget;
+    if (aboveMA && vixSafe)       baseTarget = 1.0;
+    else if (aboveMA || vixSafe)  baseTarget = POS_CAUTION;
+    else                          baseTarget = 0.0;
+
+    // 쿨다운 체크
+    var canChange = (i - lastChange) >= COOLDOWN;
+
+    // ATR 트레일링 스탑
+    if (pos > 0 || baseTarget > 0) peak = Math.max(peak, c);
+    var stopLine = peak - atr10 * ATR_MULT;
+
+    if (!forcedOut) {
+      if (pos > 0 && c < stopLine) {
+        forcedOut = true; pos = 0; peak = 0; lastChange = i;
+      } else if (canChange && baseTarget !== pos) {
+        pos = baseTarget; lastChange = i;
+      }
+    } else {
+      if (baseTarget > 0 && c > stopLine * 1.02) {
+        forcedOut = false; peak = c;
+      }
+      // 강제 청산 상태에서도 MA/VIX 신호 따름
+      if (!forcedOut && canChange && baseTarget !== pos) {
+        pos = baseTarget; lastChange = i;
+      } else if (forcedOut) {
+        pos = 0;
+      }
+    }
+  }
+
+  return { pos: pos, peak: peak, forcedOut: forcedOut, lastChange: lastChange };
+}
+
+// ════════════════════════════════════════════════════════
+// 메인 신호 계산
+// ════════════════════════════════════════════════════════
+async function loadSignal() {
+  var btn = document.getElementById('refreshBtn');
+  var msg = document.getElementById('statusMsg');
+  var lbl = document.getElementById('btnLabel');
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  lbl.textContent = '계산 중...';
+  msg.className = 'status-msg';
+  msg.textContent = 'Yahoo Finance 데이터 수신 중...';
+
+  try {
+    var results = await Promise.all([
+      yahooQuote('UPRO', '1y'),
+      yahooQuote('SPY',  '2y'),
+      yahooQuote('%5EVIX', '2y'),
+    ]);
+
+    var uproBars = results[0].bars;
+    var spyBars  = results[1].bars;
+    var vixBars  = results[2].bars;
+
+    var uproC = uproBars.map(function(b){ return b.c; });
+    var spyC  = spyBars.map(function(b){ return b.c; });
+    var vixC  = vixBars.map(function(b){ return b.c; });
+
+    // 현재 지표
+    var uproPrice  = results[0].meta.regularMarketPrice || uproC[uproC.length-1];
+    var uproPrev   = uproC[uproC.length-2];
+    var uproPctChg = (uproPrice - uproPrev) / uproPrev * 100;
+
+    var spyPrice  = spyC[spyC.length-1];
+    var spyMa210  = calcMA(spyC, MA_WIN);
+    var spyMa200  = calcMA(spyC, 200);
+    var vixNow    = vixC[vixC.length-1];
+    var atr10     = calcATR(spyBars, ATR_N);
+
+    var aboveMA  = spyPrice > spyMa210;
+    var vixSafe  = vixNow < VIX_THRESH;
+    var maDist   = spyMa210 ? (spyPrice - spyMa210) / spyMa210 : 0;
+    var maDist200= spyMa200 ? (spyPrice - spyMa200) / spyMa200 : 0;
+    var maPct    = maDist * 100;
+
+    // ATR 스탑
+    var recentSpyC = spyC.slice(-ATR_PEAK_WIN);
+    var peak = Math.max.apply(null, recentSpyC);
+    var stopLine   = atr10 ? peak - atr10 * ATR_MULT : null;
+    var atrSafe    = stopLine ? spyPrice > stopLine : true;
+    var ddFromPeak = ((spyPrice - peak) / peak * 100);
+    var bufferPct  = stopLine ? ((spyPrice - stopLine) / spyPrice * 100) : null;
+
+    // 모멘텀 DCA
+    var mom1m  = spyC.length > 21  ? (spyPrice / spyC[spyC.length-22]  - 1) : 0;
+    var mom3m  = spyC.length > 63  ? (spyPrice / spyC[spyC.length-64]  - 1) : 0;
+    var dcaMult = calcDcaMult(mom1m, mom3m, maDist200);
+
+    // 시뮬레이션으로 현재 포지션 결정
+    var sim = simulateFinal(spyBars, vixC);
+    var pos = sim.pos;
+    if (sim.forcedOut) pos = 0;
+
+    // 신호 텍스트
+    var signal;
+    if (sim.forcedOut)    signal = 'STOP';
+    else if (pos === 1.0) signal = 'LONG';
+    else if (pos > 0)     signal = 'CAUTION';
+    else                  signal = 'CASH';
+
+    var uproWeight = Math.round(pos * 100);
+    var cashWeight = 100 - uproWeight;
+
+    // 이유
+    var reasons = [];
+    if (signal === 'LONG') {
+      reasons.push('SPY MA210 위 ($' + spyPrice.toFixed(2) + ' > $' + spyMa210.toFixed(2) + ')');
+      reasons.push('VIX ' + vixNow.toFixed(1) + ' < ' + VIX_THRESH + ' (안전)');
+      reasons.push('ATR 스탑 안전 (버퍼 ' + (bufferPct ? bufferPct.toFixed(1) : '--') + '%)');
+      reasons.push('DCA 배수 ' + dcaMult.toFixed(2) + 'x (모멘텀 ' + (mom1m*100).toFixed(1) + '%)');
+    } else if (signal === 'CAUTION') {
+      if (!aboveMA) reasons.push('SPY MA210 아래 ($' + spyPrice.toFixed(2) + ' < $' + spyMa210.toFixed(2) + ')');
+      if (!vixSafe) reasons.push('VIX ' + vixNow.toFixed(1) + ' >= ' + VIX_THRESH + ' (위험)');
+      reasons.push('주의 포지션 79% 적용');
+      reasons.push('ATR 스탑 안전 — 추가 하락 시 전량 청산');
+    } else if (signal === 'STOP') {
+      reasons.push('ATR 트레일링 스탑 발동!');
+      reasons.push('SPY 고점 $' + peak.toFixed(2) + ' → 스탑 $' + (stopLine ? stopLine.toFixed(2) : '--'));
+      reasons.push('즉시 전량 청산 후 MA/VIX 신호 회복 대기');
+    } else {
+      if (!aboveMA) reasons.push('SPY MA210 아래 ($' + spyPrice.toFixed(2) + ' < $' + spyMa210.toFixed(2) + ')');
+      if (!vixSafe) reasons.push('VIX ' + vixNow.toFixed(1) + ' >= ' + VIX_THRESH + ' (위험)');
+      reasons.push('두 조건 모두 위험 — 전량 현금 보유');
+    }
+
+    updateDashboard({
+      uproPrice, uproPrev, uproPctChg,
+      spyPrice, spyMa210, aboveMA, maPct,
+      vixNow, vixSafe,
+      atr10, stopLine, atrSafe, ddFromPeak, bufferPct, peak,
+      mom1m, mom3m, maDist200, dcaMult,
+      signal, uproWeight, cashWeight,
+      reasons, sim
+    });
+
+    msg.className = 'status-msg ok';
+    msg.textContent = '갱신 완료 — ' + new Date().toLocaleTimeString('ko-KR');
+    document.getElementById('lastUpdate').textContent =
+      new Date().toLocaleDateString('ko-KR') + ' ' + new Date().toLocaleTimeString('ko-KR');
+
+  } catch(e) {
+    msg.className = 'status-msg err';
+    msg.textContent = '오류: ' + e.message.slice(0, 60);
+    document.getElementById('signalCard').className = 'signal-card ERROR';
+    document.getElementById('signalText').textContent = 'ERR';
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    lbl.textContent = '↻ 신호 갱신';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// UI 업데이트
+// ════════════════════════════════════════════════════════
+function updateDashboard(d) {
+  // 메인 신호
+  var card = document.getElementById('signalCard');
+  card.className = 'signal-card ' + d.signal;
+  var signalLabels = { LONG:'LONG', CAUTION:'CAUTION', CASH:'CASH', STOP:'STOP' };
+  document.getElementById('signalText').textContent = signalLabels[d.signal] || d.signal;
+
+  // 비중 바
+  var ub = document.getElementById('uproBar');
+  ub.style.width = d.uproWeight + '%';
+  ub.style.background =
+    d.signal === 'LONG'    ? 'var(--amber)' :
+    d.signal === 'CAUTION' ? 'var(--yellow)' : 'var(--muted)';
+  document.getElementById('uproPct').textContent = d.uproWeight + '%';
+  document.getElementById('cashBar').style.width = d.cashWeight + '%';
+  document.getElementById('cashPct').textContent = d.cashWeight + '%';
+
+  // UPRO 가격
+  var up = d.uproPctChg >= 0;
+  set('uproPrice', '$' + d.uproPrice.toFixed(2));
+  setDot('priceDot', up ? 'green' : 'red');
+  setSpan('priceChange', (up?'+':'') + d.uproPctChg.toFixed(2) + '%', up ? 'var(--green)' : 'var(--red)');
+
+  // MA210
+  set('maVal', (d.maPct >= 0 ? '+' : '') + d.maPct.toFixed(1) + '%');
+  setDot('maDot', d.aboveMA ? 'green' : 'red');
+  setSpan('maStatus', d.aboveMA ? 'MA210 위' : 'MA210 아래', d.aboveMA ? 'var(--green)' : 'var(--red)');
+
+  // VIX
+  var vc = d.vixNow < 20 ? 'green' : d.vixNow < 25 ? 'amber' : 'red';
+  set('vixVal', d.vixNow.toFixed(1));
+  setDot('vixDot', vc);
+  setSpan('vixStatus', d.vixSafe ? '안전 (<22)' : '위험 (>=22)', d.vixSafe ? 'var(--green)' : 'var(--red)');
+
+  // ATR 고점대비
+  set('atrDdVal', d.ddFromPeak.toFixed(1) + '%');
+  setDot('atrDot', d.atrSafe ? 'green' : 'red');
+  setSpan('atrStatus', d.atrSafe ? '스탑 안전' : '스탑 발동!', d.atrSafe ? 'var(--green)' : 'var(--red)');
+
+  // 모멘텀
+  var mom = d.mom1m * 100;
+  set('mom1mVal', (mom >= 0 ? '+' : '') + mom.toFixed(1) + '%');
+  setDot('momDot', mom > 2 ? 'green' : mom > -2 ? 'amber' : 'red');
+  setSpan('momStatus', '3M: ' + (d.mom3m*100 >= 0 ? '+' : '') + (d.mom3m*100).toFixed(1) + '%',
+    d.mom3m > 0 ? 'var(--green)' : 'var(--red)');
+
+  // DCA
+  set('dcaValInd', d.dcaMult.toFixed(2) + 'x');
+  setDot('dcaDot', d.dcaMult >= 1.2 ? 'green' : d.dcaMult >= 0.7 ? 'amber' : 'red');
+  setSpan('dcaStatus', d.dcaMult >= 1.0 ? '적립 증가' : '적립 축소', d.dcaMult >= 1.0 ? 'var(--amber)' : 'var(--red)');
+
+  // ATR 시각화
+  set('atrCurrentPrice', '$' + d.uproPrice.toFixed(2));
+  set('atrStopVal', d.stopLine ? '$' + d.stopLine.toFixed(2) : '--');
+  set('atrBuffer', d.bufferPct ? d.bufferPct.toFixed(1) + '%' : '--');
+
+  // 트랙 위치 (stopLine / peak 기준으로 0~100% 위치 계산)
+  if (d.stopLine && d.peak) {
+    var range = d.peak - d.stopLine;
+    var pricePos = range > 0 ? Math.min(95, Math.max(5, (d.spyPrice - d.stopLine) / range * 100)) : 85;
+    var stopPct  = Math.min(90, Math.max(10, (d.stopLine - d.stopLine) / range * 100 + 5));
+    document.getElementById('atrZoneSafe').style.width = stopPct + 5 + '%';
+    document.getElementById('atrStopMarker').style.left = stopPct + 5 + '%';
+    document.getElementById('atrPriceMarker').style.left = pricePos + '%';
+    document.getElementById('atrBuffer').style.color = d.atrSafe ? 'var(--green)' : 'var(--red)';
+  }
+
+  // DCA 스케일
+  var thresholds = [0, 0.4, 0.7, 1.0, 1.2, 1.5, 1.8, 2.0];
+  var blks = document.getElementById('dcaScale').querySelectorAll('.dca-blk');
+  var activeIdx = 0;
+  for (var i = 0; i < thresholds.length; i++) {
+    if (d.dcaMult >= thresholds[i]) activeIdx = i;
+  }
+  blks.forEach(function(b, i){ b.className = 'dca-blk' + (i === activeIdx ? ' on' : ''); });
+  set('dcaMultBig', d.dcaMult.toFixed(2) + 'x');
+  set('mom1mDca', (d.mom1m*100 >= 0?'+':'') + (d.mom1m*100).toFixed(1) + '%');
+  set('mom3mDca', (d.mom3m*100 >= 0?'+':'') + (d.mom3m*100).toFixed(1) + '%');
+  set('maDistDca', (d.maDist200*100 >= 0?'+':'') + (d.maDist200*100).toFixed(1) + '%');
+
+  // 체크리스트
+  setCheck(1, d.aboveMA,  'SPY $' + d.spyPrice.toFixed(2) + ' vs MA210 $' + d.spyMa210.toFixed(2));
+  setCheck(2, d.vixSafe,  'VIX ' + d.vixNow.toFixed(1) + ' (기준 22.0)');
+  setCheck(3, d.atrSafe,  '고점 $' + d.peak.toFixed(2) + ' → 스탑 $' + (d.stopLine ? d.stopLine.toFixed(2) : '--'));
+  setCheckN(4, 'DCA ' + d.dcaMult.toFixed(2) + 'x (기본 적립 × ' + d.dcaMult.toFixed(2) + ')');
+  var cdOk = true; // 쿨다운은 시뮬레이션에서 처리됨
+  setCheck(5, cdOk, '신호 변경 후 6일 대기 적용 중');
+
+  // 이유
+  document.getElementById('reasonsList').innerHTML =
+    d.reasons.map(function(r){ return '<div class="reason-item">' + r + '</div>'; }).join('');
+}
+
+function set(id, v) { document.getElementById(id).textContent = v; }
+function setDot(id, c) { document.getElementById(id).className = 'dot ' + c; }
+function setSpan(id, t, c) { var e = document.getElementById(id); e.textContent = t; e.style.color = c; }
+function setCheck(n, pass, val) {
+  var i = document.getElementById('c'+n+'i');
+  var v = document.getElementById('c'+n+'v');
+  i.className = 'check-icon ' + (pass ? 'pass' : 'fail');
+  i.textContent = pass ? '✓' : '✕';
+  v.className = 'check-value ' + (pass ? 'pass' : 'fail');
+  v.textContent = val;
+}
+function setCheckN(n, val) {
+  document.getElementById('c'+n+'i').className = 'check-icon neutral';
+  document.getElementById('c'+n+'i').textContent = '✓';
+  var v = document.getElementById('c'+n+'v');
+  v.className = 'check-value neutral'; v.textContent = val;
+}
+</script>
+</body>
+</html>
