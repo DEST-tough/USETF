@@ -352,7 +352,7 @@ header {
 
   <!-- ATR 트레일링 스탑 시각화 -->
   <div class="atr-vis-card">
-    <div class="atr-vis-label">ATR 트레일링 스탑 위치</div>
+    <div class="atr-vis-label">ATR 트레일링 스탑 위치 <span style="color:var(--muted);font-size:9px;letter-spacing:1px">(SPY 기준)</span></div>
     <div class="atr-track-wrap">
       <div class="atr-zone-safe" id="atrZoneSafe" style="width:80%"></div>
       <div class="atr-stop-marker" id="atrStopMarker" style="left:80%"></div>
@@ -362,11 +362,11 @@ header {
     </div>
     <div class="atr-stats-row">
       <div class="atr-stat">
-        <div class="atr-stat-lbl">현재가</div>
+        <div class="atr-stat-lbl">SPY 현재가</div>
         <div class="atr-stat-val" id="atrCurrentPrice" style="color:var(--amber)">—</div>
       </div>
       <div class="atr-stat">
-        <div class="atr-stat-lbl">스탑라인</div>
+        <div class="atr-stat-lbl">스탑라인 (SPY)</div>
         <div class="atr-stat-val" id="atrStopVal" style="color:var(--red)">—</div>
       </div>
       <div class="atr-stat">
@@ -780,17 +780,22 @@ function updateDashboard(d) {
   setSpan('dcaStatus', d.dcaMult >= 1.0 ? '적립 증가' : '적립 축소', d.dcaMult >= 1.0 ? 'var(--amber)' : 'var(--red)');
 
   // ATR 시각화
-  set('atrCurrentPrice', '$' + d.uproPrice.toFixed(2));
+  set('atrCurrentPrice', '$' + d.spyPrice.toFixed(2));
   set('atrStopVal', d.stopLine ? '$' + d.stopLine.toFixed(2) : '--');
   set('atrBuffer', d.bufferPct ? d.bufferPct.toFixed(1) + '%' : '--');
 
   // 트랙 위치 (stopLine / peak 기준으로 0~100% 위치 계산)
   if (d.stopLine && d.peak) {
     var range = d.peak - d.stopLine;
-    var pricePos = range > 0 ? Math.min(95, Math.max(5, (d.spyPrice - d.stopLine) / range * 100)) : 85;
-    var stopPct  = Math.min(90, Math.max(10, (d.stopLine - d.stopLine) / range * 100 + 5));
-    document.getElementById('atrZoneSafe').style.width = stopPct + 5 + '%';
-    document.getElementById('atrStopMarker').style.left = stopPct + 5 + '%';
+    // 트랙: 왼쪽=스탑라인, 오른쪽=고점
+    // 스탑라인은 트랙 20% 위치에 고정
+    // 현재가는 (현재가-스탑)/(고점-스탑) 비율로 위치
+    var STOP_POS = 20; // 스탑라인 고정 위치 (%)
+    var pricePos = range > 0
+      ? Math.min(95, Math.max(STOP_POS + 1, STOP_POS + (d.spyPrice - d.stopLine) / range * (95 - STOP_POS)))
+      : 85;
+    document.getElementById('atrZoneSafe').style.width = STOP_POS + '%';
+    document.getElementById('atrStopMarker').style.left = STOP_POS + '%';
     document.getElementById('atrPriceMarker').style.left = pricePos + '%';
     document.getElementById('atrBuffer').style.color = d.atrSafe ? 'var(--green)' : 'var(--red)';
   }
