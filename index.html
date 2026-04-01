@@ -122,7 +122,7 @@ var GS_URL = ""; // 예: "https://script.google.com/macros/s/XXXXX/exec"
 
 // ── 앱 상태 ───────────────────────────────────────────────────
 var state = {
-  qqqDD:8, vix:18, vixRising:false, mom:2, below200:false, ma200:0, qqqPrice:0,
+  qqqDD:8, vix:18, vixRising:false, mom:2, below200:false, ma200:0, qqqPrice:0, lastWeeklyBuy:0,
   manualRS:null, dca:200,
   quantities:{},   // 보유 수량 (소수점)
   prices:{},       // ETF 현재가 캐시 (시장 데이터 조회 시 업데이트)
@@ -155,7 +155,7 @@ function save() {
     quantities:state.quantities, prices:state.prices,
     dca:state.dca, dividendsYtd:state.dividendsYtd,
     qqqDD:state.qqqDD, vix:state.vix, vixRising:state.vixRising,
-    mom:state.mom, below200:state.below200, ma200:state.ma200, qqqPrice:state.qqqPrice, manualRS:state.manualRS
+    mom:state.mom, below200:state.below200, ma200:state.ma200, qqqPrice:state.qqqPrice, lastWeeklyBuy:state.lastWeeklyBuy, manualRS:state.manualRS
   })); } catch(e){}
 }
 
@@ -180,8 +180,9 @@ async function saveToSheet() {
     var today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit"}).replace(/\. /g,"-").replace(".","-").replace(/\.$/, "");
     // 같은 날 중복 저장 방지 (마지막 항목 날짜 비교)
     var last = perfHistory[perfHistory.length-1];
-    // 투입원금: 직전 스냅샷 없으면 현재 평가금액을 기준으로, 있으면 직전+DCA
-    var totalInv = last ? (last.totalInv + state.dca) : total;
+    // 투입원금: 직전 스냅샷 없으면 현재 평가금액, 있으면 직전+실제매수금액
+    var actualBuy = state.lastWeeklyBuy > 0 ? state.lastWeeklyBuy : calcStepDCA(total);
+    var totalInv = last ? (last.totalInv + actualBuy) : total;
     var baseQqq  = last ? last.qqqPrice : qqqP; // QQQ 기준가 (첫 스냅샷)
     var snap = {
       date:     today,
@@ -204,7 +205,7 @@ async function saveToSheet() {
 
   setSyncStatus("ing", "저장 중...");
   try {
-    var res = await fetch("/gs", {
+    var res = await fetch("/.netlify/functions/gs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -251,8 +252,9 @@ function load() {
     if(d.mom    !== undefined) state.mom       = d.mom;
     if(d.below200  !== undefined) state.below200  = d.below200;
     if(d.ma200     !== undefined) state.ma200     = d.ma200;
-    if(d.qqqPrice  !== undefined) state.qqqPrice  = d.qqqPrice;
-    if(d.manualRS  !== undefined) state.manualRS  = d.manualRS;
+    if(d.qqqPrice      !== undefined) state.qqqPrice      = d.qqqPrice;
+    if(d.lastWeeklyBuy !== undefined) state.lastWeeklyBuy = d.lastWeeklyBuy;
+    if(d.manualRS      !== undefined) state.manualRS      = d.manualRS;
   } catch(e){}
 }
 
@@ -263,7 +265,7 @@ function gsSave() { /* saveToSheet()로 대체됨 */ }
 async function gsLoad() {
   setSyncStatus("ing", "시트에서 불러오는 중...");
   try {
-    var res  = await fetch("/gs?action=read");
+    var res  = await fetch("/.netlify/functions/gs?action=read");
     var json = await res.json();
     if (!json.ok) throw new Error(json.error || "응답 오류");
     var d = json.data;
@@ -349,7 +351,7 @@ function portColor(t){
 async function yahooQuote(symbol) {
   // Netlify Function 프록시 경유 → CORS 문제 없음
   var urls = [
-    "/yahoo?symbol=" + encodeURIComponent(symbol),
+    "/.netlify/functions/yahoo?symbol=" + encodeURIComponent(symbol),
     // 폴백: allorigins
     "https://api.allorigins.win/get?url=" + encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/"+symbol+"?interval=1d&range=1y"),
   ];
@@ -734,42 +736,58 @@ function renderAction(rs,cfg,tw,total){
   var effectiveDCA = calcStepDCA(total);
   var tv = total>0 ? total+effectiveDCA : 50000;
 
-  var items = Object.entries(tw).map(function(e){
+  // ── 1차 계산: 기본 매수금액 ──────────────────────────────
+  var rawItems = Object.entries(tw).map(function(e){
     var t=e[0],tww=e[1];
     var held   = getHoldingValue(t);
-    var curPct = total>0 ? held/total : tww; // 현재 비중 (total 기준)
-    var gap    = tww - curPct;               // 목표 대비 차이 (+부족/-초과)
-
-    // 드리프트 판단 (잔고 있을 때만)
-    var drift = total>0 ? curPct - tww : 0;
-    var isTrim = drift >  DRIFT_TRIM;   // 5%p 초과 → TRIM
-    var isAdd  = gap   >  DRIFT_ADD;    // 5%p 부족 → ADD 우선
-
-    // 매수 금액: TRIM 종목은 0, ADD 종목은 DCA 우선 배분
+    var curPct = total>0 ? held/total : tww;
+    var gap    = tww - curPct;
+    var drift  = total>0 ? curPct - tww : 0;
+    var isTrim = drift >  DRIFT_TRIM;
+    var isAdd  = gap   >  DRIFT_ADD;
     var buy = 0;
-    if (isTrim) {
-      buy = 0; // 매수 없음, TRIM 신호
-    } else {
+    if (!isTrim) {
       buy = total>0
         ? Math.max(0, Math.min(gap * tv, effectiveDCA * tww))
         : Math.round(tww * effectiveDCA);
     }
-
-    // TRIM 금액: 초과분 중 버퍼(2%p) 남기고 매도
     var trimAmt = 0;
     if (isTrim && total>0) {
-      var excessPct = drift - 0.02; // 2%p 버퍼 남김
+      var excessPct = drift - 0.02;
       trimAmt = Math.round(excessPct * total * 100) / 100;
     }
-
     return {t:t, tw:tww, held:held, gap:gap, curPct:curPct,
             buy:buy, isTrim:isTrim, isAdd:isAdd, trimAmt:trimAmt, drift:drift};
-  }).sort(function(a,b){
-    // TRIM 항목 맨 위, 그 다음 gap 큰 순
+  });
+
+  // ── 2차: TRIM 금액 + 미배분 DCA를 ADD 종목에 비례 재배분 ──
+  var totalBuy  = rawItems.reduce(function(s,a){ return s + a.buy; }, 0);
+  var totalTrim = rawItems.reduce(function(s,a){ return s + a.trimAmt; }, 0);
+  // 총 매수 가능 = DCA + TRIM 매도금액
+  var totalAvailable = effectiveDCA + totalTrim;
+  var remaining = Math.max(0, totalAvailable - totalBuy);
+  if (remaining > 0.5) {
+    var addItems = rawItems.filter(function(a){ return !a.isTrim && a.gap > 0; });
+    var addTwSum = addItems.reduce(function(s,a){ return s + a.tw; }, 0);
+    if (addTwSum > 0) {
+      rawItems.forEach(function(a) {
+        if (!a.isTrim && a.gap > 0) {
+          a.buy += remaining * (a.tw / addTwSum);
+        }
+      });
+    }
+  }
+
+  // ── 최종 정렬 ────────────────────────────────────────────
+  var items = rawItems.sort(function(a,b){
     if (a.isTrim && !b.isTrim) return -1;
     if (!a.isTrim && b.isTrim) return 1;
     return b.gap - a.gap;
   });
+
+  // 이번 주 실제 매수 예정 금액 state에 저장 (스냅샷용)
+  // lastWeeklyBuy = 실제 매수금액 합계 (DCA + TRIM 재투입분)
+  state.lastWeeklyBuy = Math.round(items.reduce(function(s,a){ return s + (a.isTrim ? 0 : a.buy); }, 0) * 100) / 100;
 
   var rows = items.map(function(a,i){
     var pc = portColor(a.t);
