@@ -122,8 +122,8 @@ var GS_URL = ""; // 예: "https://script.google.com/macros/s/XXXXX/exec"
 
 // ── 앱 상태 ───────────────────────────────────────────────────
 var state = {
-  qqqDD:8, vix:18, vixRising:false, mom:2, below200:false, ma200:0, qqqPrice:0, lastWeeklyBuy:0,
-  manualRS:null, dca:200,
+  qqqDD:8, vix:18, vixRising:false, mom:2, below200:false, ma200:0, qqqPrice:0,
+  manualRS:null, dca:200, lastWeeklyBuy:0,
   quantities:{},   // 보유 수량 (소수점)
   prices:{},       // ETF 현재가 캐시 (시장 데이터 조회 시 업데이트)
   dividendsYtd:0
@@ -205,7 +205,7 @@ async function saveToSheet() {
 
   setSyncStatus("ing", "저장 중...");
   try {
-    var res = await fetch("/.netlify/functions/gs", {
+    var res = await fetch("/gs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -265,7 +265,7 @@ function gsSave() { /* saveToSheet()로 대체됨 */ }
 async function gsLoad() {
   setSyncStatus("ing", "시트에서 불러오는 중...");
   try {
-    var res  = await fetch("/.netlify/functions/gs?action=read");
+    var res  = await fetch("/gs?action=read");
     var json = await res.json();
     if (!json.ok) throw new Error(json.error || "응답 오류");
     var d = json.data;
@@ -351,7 +351,7 @@ function portColor(t){
 async function yahooQuote(symbol) {
   // Netlify Function 프록시 경유 → CORS 문제 없음
   var urls = [
-    "/.netlify/functions/yahoo?symbol=" + encodeURIComponent(symbol),
+    "/yahoo?symbol=" + encodeURIComponent(symbol),
     // 폴백: allorigins
     "https://api.allorigins.win/get?url=" + encodeURIComponent("https://query1.finance.yahoo.com/v8/finance/chart/"+symbol+"?interval=1d&range=1y"),
   ];
@@ -736,7 +736,7 @@ function renderAction(rs,cfg,tw,total){
   var effectiveDCA = calcStepDCA(total);
   var tv = total>0 ? total+effectiveDCA : 50000;
 
-  // ── 1차 계산: 기본 매수금액 ──────────────────────────────
+  // ── 1차: 기본 매수금액 계산 ─────────────────────────────
   var rawItems = Object.entries(tw).map(function(e){
     var t=e[0],tww=e[1];
     var held   = getHoldingValue(t);
@@ -753,7 +753,7 @@ function renderAction(rs,cfg,tw,total){
     }
     var trimAmt = 0;
     if (isTrim && total>0) {
-      var excessPct = drift - 0.02;
+      var excessPct = drift - 0.02; // 2%p 버퍼 남김
       trimAmt = Math.round(excessPct * total * 100) / 100;
     }
     return {t:t, tw:tww, held:held, gap:gap, curPct:curPct,
@@ -763,8 +763,7 @@ function renderAction(rs,cfg,tw,total){
   // ── 2차: TRIM 금액 + 미배분 DCA를 ADD 종목에 비례 재배분 ──
   var totalBuy  = rawItems.reduce(function(s,a){ return s + a.buy; }, 0);
   var totalTrim = rawItems.reduce(function(s,a){ return s + a.trimAmt; }, 0);
-  // 총 매수 가능 = DCA + TRIM 매도금액
-  var totalAvailable = effectiveDCA + totalTrim;
+  var totalAvailable = effectiveDCA + totalTrim; // DCA + TRIM 매도금액
   var remaining = Math.max(0, totalAvailable - totalBuy);
   if (remaining > 0.5) {
     var addItems = rawItems.filter(function(a){ return !a.isTrim && a.gap > 0; });
@@ -778,16 +777,17 @@ function renderAction(rs,cfg,tw,total){
     }
   }
 
-  // ── 최종 정렬 ────────────────────────────────────────────
+  // ── 실제 매수 예정 합계 저장 (스냅샷 투입원금용) ────────────
+  state.lastWeeklyBuy = Math.round(
+    rawItems.reduce(function(s,a){ return s + (a.isTrim ? 0 : a.buy); }, 0) * 100
+  ) / 100;
+
+  // ── 3차: 정렬 ────────────────────────────────────────────
   var items = rawItems.sort(function(a,b){
     if (a.isTrim && !b.isTrim) return -1;
     if (!a.isTrim && b.isTrim) return 1;
     return b.gap - a.gap;
   });
-
-  // 이번 주 실제 매수 예정 금액 state에 저장 (스냅샷용)
-  // lastWeeklyBuy = 실제 매수금액 합계 (DCA + TRIM 재투입분)
-  state.lastWeeklyBuy = Math.round(items.reduce(function(s,a){ return s + (a.isTrim ? 0 : a.buy); }, 0) * 100) / 100;
 
   var rows = items.map(function(a,i){
     var pc = portColor(a.t);
