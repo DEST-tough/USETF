@@ -31,6 +31,7 @@ function initSheets() {
       ['price_b',        ''],
       ['bh_start_price', ''],
       ['bh_start_date',  ''],
+      ['fractional_order','false'],
       ['created_at',     new Date().toISOString()],
     ];
     st.getRange(2, 1, defaults.length, 2).setValues(defaults);
@@ -205,7 +206,8 @@ function doGet(e) {
           settings: {
             capital:        parseFloat(raw.capital)       || 100000,
             cash:           parseFloat(raw.cash)          || 100000,
-            cycle_is_bull:  raw.cycle_is_bull === 'true',
+            cycle_is_bull:      raw.cycle_is_bull === 'true',
+            fractional_order:  raw.fractional_order === 'true',
             filled_slots:   parseInt(raw.filled_slots)    || 0,
             price_a:        parseFloat(raw.price_a)       || 0,
             price_b:        parseFloat(raw.price_b)       || 0,
@@ -251,7 +253,8 @@ function doPost(e) {
       var sh = ss.getSheetByName(SHEET_SETTINGS);
       var allowed = [
         'capital', 'cash', 'cycle_is_bull', 'filled_slots',
-        'price_a', 'price_b', 'bh_start_price', 'bh_start_date'
+        'price_a', 'price_b', 'bh_start_price', 'bh_start_date',
+        'fractional_order'
       ];
       var updates = {};
       allowed.forEach(function(k) {
