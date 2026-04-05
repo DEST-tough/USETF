@@ -334,6 +334,7 @@ body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <div class="op-price" id="buyPrice">—</div>
         <div class="op-detail">이하이면 <span id="buySlotLabel">진입</span><br>비중 <span id="buyWeight">—</span></div>
         <div class="op-formula">(a+b)×0.995/2.005</div>
+        <div id="buyOrderDetail" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:9px;line-height:2;color:var(--muted);"></div>
       </div>
     </div>
 
@@ -741,38 +742,99 @@ function updateOrderTab() {
   renderSlotGauge();
 }
 
+function calcSlotOrder(totalAsset, cash, filledSlots, isBull, buyPrice) {
+  var weights  = isBull ? W_BULL : W_BEAR;
+  var minW     = Math.min.apply(null, weights);
+  var minEqual = buyPrice * 5;
+  var minCCI   = buyPrice / minW;
+
+  if (totalAsset < minEqual) {
+    return { zone: 1, mode: 'IMPOSSIBLE', minEqual: minEqual, minCCI: minCCI };
+  } else if (totalAsset < minCCI) {
+    var slotAmt = totalAsset / 5;
+    return {
+      zone: 2, mode: 'EQUAL',
+      slotAmt: slotAmt,
+      qtyFrac: slotAmt / buyPrice,
+      qtyInt:  Math.floor(slotAmt / buyPrice),
+      minEqual: minEqual, minCCI: minCCI
+    };
+  } else {
+    var slotAmt2 = totalAsset * weights[filledSlots];
+    if (slotAmt2 > cash) slotAmt2 = cash;
+    return {
+      zone: 3, mode: 'CCI',
+      slotAmt: slotAmt2,
+      qtyFrac: slotAmt2 / buyPrice,
+      qtyInt:  Math.floor(slotAmt2 / buyPrice),
+      weight:  weights[filledSlots] * 100,
+      minEqual: minEqual, minCCI: minCCI
+    };
+  }
+}
+
 function calcThresholds() {
   var a = STATE.priceA, b = STATE.priceB;
   if (!a || !b) return;
 
-  var sp  = STATE.isBull ? 1.010 : 1.007;
-  var sd  = STATE.isBull ? 1.990 : 1.993;
+  var sp    = STATE.isBull ? 1.010 : 1.007;
+  var sd    = STATE.isBull ? 1.990 : 1.993;
   var sellP = (a + b) * sp / sd;
   var buyP  = (a + b) * 0.995 / 2.005;
   var base  = (a + b) / 2;
   var gap   = sellP - buyP;
   var gapPct= (gap / base * 100).toFixed(2);
 
-  document.getElementById('sellPrice').textContent   = '$' + sellP.toFixed(2);
-  document.getElementById('buyPrice').textContent    = '$' + buyP.toFixed(2);
-  document.getElementById('sellMult').textContent    = '×' + sp.toFixed(3);
-  document.getElementById('sellFormula').textContent = '(a+b)×' + sp.toFixed(3) + '/' + sd.toFixed(3);
-  document.getElementById('pgA').textContent    = '$' + a.toFixed(2);
-  document.getElementById('pgB').textContent    = '$' + b.toFixed(2);
-  document.getElementById('pgBase').textContent = '$' + base.toFixed(2);
-  document.getElementById('pgGap').textContent  = '$' + gap.toFixed(2);
-  document.getElementById('pgGapPct').textContent = gapPct + '% 범위';
+  document.getElementById('sellPrice').textContent    = '$' + sellP.toFixed(2);
+  document.getElementById('buyPrice').textContent     = '$' + buyP.toFixed(2);
+  document.getElementById('sellMult').textContent     = '×' + sp.toFixed(3);
+  document.getElementById('sellFormula').textContent  = '(a+b)×' + sp.toFixed(3) + '/' + sd.toFixed(3);
+  document.getElementById('pgA').textContent     = '$' + a.toFixed(2);
+  document.getElementById('pgB').textContent     = '$' + b.toFixed(2);
+  document.getElementById('pgBase').textContent  = '$' + base.toFixed(2);
+  document.getElementById('pgGap').textContent   = '$' + gap.toFixed(2);
+  document.getElementById('pgGapPct').textContent= gapPct + '% 범위';
 
-  // 다음 슬롯
-  var w = STATE.isBull ? W_BULL : W_BEAR;
+  // 총자산 계산
+  var soxlVal   = 0;
+  STATE.slots.forEach(function(s){ soxlVal += s.shares * (STATE.currentPrice || s.price); });
+  var totalAsset = STATE.cash + soxlVal || STATE.capital;
+
+  // 슬롯 주문 분석
+  var w       = STATE.isBull ? W_BULL : W_BEAR;
   var nextIdx = STATE.filledSlots;
-  if (nextIdx < 5) {
-    var nextW = w[nextIdx];
-    document.getElementById('buySlotLabel').textContent = (nextIdx+1) + '슬롯 진입';
-    document.getElementById('buyWeight').textContent    = (nextW*100).toFixed(1) + '%';
-  } else {
+  var so      = calcSlotOrder(totalAsset, STATE.cash, nextIdx, STATE.isBull, buyP);
+  var detail  = document.getElementById('buyOrderDetail');
+
+  if (nextIdx >= 5) {
     document.getElementById('buySlotLabel').textContent = '5슬롯 완료';
     document.getElementById('buyWeight').textContent    = '—';
+    detail.innerHTML = '';
+  } else if (so.zone === 1) {
+    // 구간1: 운용 불가
+    document.getElementById('buySlotLabel').textContent = '운용 불가';
+    document.getElementById('buyWeight').textContent    = '—';
+    detail.innerHTML =
+      '<span style="color:var(--sell)">❌ 잔고 부족</span><br>' +
+      '최소 $' + Math.round(so.minEqual) + ' 필요 (현재 $' + Math.round(totalAsset) + ')';
+  } else if (so.zone === 2) {
+    // 구간2: 균등 강제전환
+    document.getElementById('buySlotLabel').textContent = (nextIdx+1) + '슬롯 (균등전환)';
+    document.getElementById('buyWeight').textContent    = '20.0%';
+    detail.innerHTML =
+      '<span style="color:var(--yellow)">⚠️ CCI가중 불가 → 균등전환</span><br>' +
+      '💵 금액: $' + so.slotAmt.toFixed(0) + '<br>' +
+      '📌 수량: <span style="color:var(--buy)">' + so.qtyInt + '주</span>' +
+      '  <span style="color:var(--muted)">(소수점: ' + so.qtyFrac.toFixed(2) + '주)</span><br>' +
+      '<span style="color:var(--muted)">💡 CCI가중 복원: $' + Math.round(so.minCCI) + ' 이상</span>';
+  } else {
+    // 구간3: CCI 가중 정상
+    document.getElementById('buySlotLabel').textContent = (nextIdx+1) + '슬롯 진입';
+    document.getElementById('buyWeight').textContent    = so.weight.toFixed(1) + '%';
+    detail.innerHTML =
+      '💵 금액: $' + so.slotAmt.toFixed(0) + '<br>' +
+      '📌 수량: <span style="color:var(--buy)">' + so.qtyInt + '주</span>' +
+      '  <span style="color:var(--muted)">(소수점: ' + so.qtyFrac.toFixed(2) + '주)</span>';
   }
 
   // GS에 가격 저장
