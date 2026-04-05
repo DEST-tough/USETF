@@ -350,6 +350,18 @@ body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       </div>
     </div>
 
+    <!-- 소수점 주문 토글 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:9px 13px;margin-bottom:11px;">
+      <div>
+        <div style="font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;">소수점 주문</div>
+        <div style="font-size:10px;color:var(--text);" id="fracLabel">불가 (정수 수량)</div>
+      </div>
+      <div style="display:flex;border:1px solid var(--border);border-radius:3px;overflow:hidden;">
+        <button class="cci-btn" id="fracOff" onclick="setFractional(false)" style="font-size:9px;padding:6px 12px;">불가</button>
+        <button class="cci-btn" id="fracOn"  onclick="setFractional(true)"  style="font-size:9px;padding:6px 12px;">가능</button>
+      </div>
+    </div>
+
     <div class="price-grid">
       <div class="pg-card p1">
         <div class="pg-label">전일 종가 (a)</div>
@@ -362,14 +374,14 @@ body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <div class="pg-sub">D-2</div>
       </div>
       <div class="pg-card p3">
-        <div class="pg-label">(a+b)/2</div>
-        <div class="pg-val" id="pgBase">—</div>
-        <div class="pg-sub">threshold 기준</div>
+        <div class="pg-label">실시간 DD</div>
+        <div class="pg-val" id="pgDD">—</div>
+        <div class="pg-sub" id="pgDDsub">고점 대비</div>
       </div>
       <div class="pg-card p4">
-        <div class="pg-label">매도-매수 갭</div>
-        <div class="pg-val" id="pgGap">—</div>
-        <div class="pg-sub" id="pgGapPct">—</div>
+        <div class="pg-label">승률 / 평균수익</div>
+        <div class="pg-val" id="pgWR">—</div>
+        <div class="pg-sub" id="pgWRsub">—</div>
       </div>
     </div>
 
@@ -510,6 +522,7 @@ var STATE = {
   slots:         [],   // [{price, shares, date, isBull}]
   perfChart:     null,
   tradeType:     'buy',
+  fractionalOrder: false,  // 소수점 주문 가능 여부
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -641,6 +654,7 @@ async function loadData() {
     STATE.bhStartPrice = s.bh_start_price;
     STATE.bhStartDate  = s.bh_start_date;
     STATE.trades       = gsData.data.trades || [];
+    STATE.fractionalOrder = s.fractional_order === 'true' || s.fractional_order === true;
     STATE.snapshots    = gsData.data.snapshots || [];
 
     // Yahoo 데이터
@@ -654,6 +668,9 @@ async function loadData() {
       STATE.isBull = yhData.cciVal >= 0;
       gsPost({ action: 'saveSettings', cycle_is_bull: STATE.isBull });
     }
+
+    // 소수점 토글 UI 초기화
+    setFractional(STATE.fractionalOrder);
 
     // 슬롯 정보 재구성 (trades에서)
     rebuildSlots();
@@ -723,6 +740,15 @@ function setCCI(bull) {
   renderSlotGauge();
 }
 
+function setFractional(val) {
+  STATE.fractionalOrder = val;
+  document.getElementById('fracOn').className  = 'cci-btn' + (val  ? ' on-bull' : '');
+  document.getElementById('fracOff').className = 'cci-btn' + (!val ? ' on-bear' : '');
+  document.getElementById('fracLabel').textContent = val ? '가능 (금액 주문)' : '불가 (정수 수량)';
+  gsPost({ action: 'saveSettings', fractional_order: val });
+  calcThresholds();
+}
+
 function updateOrderTab() {
   // CCI
   var cv = STATE.cciValue;
@@ -740,6 +766,33 @@ function updateOrderTab() {
 
   calcThresholds();
   renderSlotGauge();
+}
+
+// 사이클별 손익 계산 (trades 기반)
+function calcCycles(trades) {
+  var cycles = [];
+  var sorted = trades.slice().reverse(); // 오래된순
+  var cycleBuys = [];
+  var cycleStartCash = null;
+
+  for (var i = 0; i < sorted.length; i++) {
+    var t = sorted[i];
+    if (t.type === 'buy') {
+      if (cycleBuys.length === 0) {
+        // 사이클 시작 직전 현금 = 이 매수의 cash_after + 매수금액
+        cycleStartCash = parseFloat(t.cash_after) + parseFloat(t.price) * parseFloat(t.shares);
+      }
+      cycleBuys.push(t);
+    } else if (t.type === 'sell' && cycleBuys.length > 0) {
+      var endCash = parseFloat(t.cash_after);
+      var pnl     = endCash - cycleStartCash;
+      var retPct  = cycleStartCash > 0 ? pnl / cycleStartCash * 100 : 0;
+      cycles.push({ pnl: pnl, retPct: retPct });
+      cycleBuys = [];
+      cycleStartCash = null;
+    }
+  }
+  return cycles;
 }
 
 function calcSlotOrder(totalAsset, cash, filledSlots, isBull, buyPrice) {
@@ -789,11 +842,38 @@ function calcThresholds() {
   document.getElementById('buyPrice').textContent     = '$' + buyP.toFixed(2);
   document.getElementById('sellMult').textContent     = '×' + sp.toFixed(3);
   document.getElementById('sellFormula').textContent  = '(a+b)×' + sp.toFixed(3) + '/' + sd.toFixed(3);
-  document.getElementById('pgA').textContent     = '$' + a.toFixed(2);
-  document.getElementById('pgB').textContent     = '$' + b.toFixed(2);
-  document.getElementById('pgBase').textContent  = '$' + base.toFixed(2);
-  document.getElementById('pgGap').textContent   = '$' + gap.toFixed(2);
-  document.getElementById('pgGapPct').textContent= gapPct + '% 범위';
+  document.getElementById('pgA').textContent = '$' + a.toFixed(2);
+  document.getElementById('pgB').textContent = '$' + b.toFixed(2);
+
+  // 실시간 DD 계산
+  var soxlValDD = 0;
+  STATE.slots.forEach(function(s){ soxlValDD += s.shares * (STATE.currentPrice || s.price); });
+  var curTotal = STATE.cash + soxlValDD || STATE.capital;
+  var peakVal  = STATE.capital;
+  STATE.snapshots.forEach(function(s){
+    var v = parseFloat(s.portfolio_val);
+    if (v > peakVal) peakVal = v;
+  });
+  if (curTotal > peakVal) peakVal = curTotal;
+  var dd = peakVal > 0 ? (curTotal - peakVal) / peakVal * 100 : 0;
+  var ddEl = document.getElementById('pgDD');
+  ddEl.textContent = dd.toFixed(1) + '%';
+  ddEl.style.color = dd < -5 ? 'var(--sell)' : dd < 0 ? 'var(--yellow)' : 'var(--buy)';
+  document.getElementById('pgDDsub').textContent = '고점 $' + Math.round(peakVal).toLocaleString('en-US');
+
+  // 승률 + 평균수익 계산 (trades 기반 사이클 분석)
+  var cycles = calcCycles(STATE.trades);
+  if (cycles.length > 0) {
+    var wins   = cycles.filter(function(c){ return c.pnl > 0; }).length;
+    var wr     = (wins / cycles.length * 100).toFixed(0);
+    var avgRet = (cycles.reduce(function(a,c){ return a + c.retPct; }, 0) / cycles.length).toFixed(1);
+    document.getElementById('pgWR').textContent   = wr + '%';
+    document.getElementById('pgWRsub').textContent = '평균 ' + (avgRet >= 0 ? '+' : '') + avgRet + '%  (' + cycles.length + '사이클)';
+    document.getElementById('pgWR').style.color = wins / cycles.length >= 0.5 ? 'var(--buy)' : 'var(--sell)';
+  } else {
+    document.getElementById('pgWR').textContent    = '—';
+    document.getElementById('pgWRsub').textContent = '거래 없음';
+  }
 
   // 총자산 계산
   var soxlVal   = 0;
