@@ -648,7 +648,7 @@ function buildRsiChart(rsiData) {
     };
   });
 
-  // 전환 신호 포인트
+  // 전환 신호 포인트만 (레이블 제거 - 툴팁으로 대체)
   signals.forEach((s, i) => {
     const isSafeSignal = s.type === 'SAFE';
     annotations['sig'+i] = {
@@ -656,21 +656,28 @@ function buildRsiChart(rsiData) {
       xValue: s.idx,
       yValue: s.val,
       radius: 5,
-      backgroundColor: isSafeSignal ? 'rgba(77,168,255,0.9)' : 'rgba(255,107,53,0.9)',
+      backgroundColor: isSafeSignal ? 'rgba(77,168,255,0.85)' : 'rgba(255,107,53,0.85)',
       borderColor: isSafeSignal ? '#4da8ff' : '#ff6b35',
       borderWidth: 2,
     };
-    // 레이블
-    annotations['lbl'+i] = {
-      type: 'label',
-      xValue: s.idx,
-      yValue: s.val + (isSafeSignal ? -7 : 7),
-      content: (isSafeSignal ? '↓ ' : '↑ ') + s.label,
-      color: isSafeSignal ? '#4da8ff' : '#ff6b35',
-      font: { size: 8, weight: 'bold' },
-      padding: 2,
-    };
   });
+
+  // 가장 최근 신호만 레이블 표시
+  if (signals.length > 0) {
+    const last = signals[signals.length - 1];
+    const isSafeLast = last.type === 'SAFE';
+    annotations['lastLbl'] = {
+      type: 'label',
+      xValue: last.idx,
+      yValue: last.val + (isSafeLast ? -9 : 9),
+      content: (isSafeLast ? '↓ ' : '↑ ') + last.label,
+      color: isSafeLast ? '#4da8ff' : '#ff6b35',
+      font: { size: 8, weight: 'bold' },
+      padding: { top:2, bottom:2, left:4, right:4 },
+      backgroundColor: isSafeLast ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.5)',
+      borderRadius: 3,
+    };
+  }
 
   if (rsiChartInst) rsiChartInst.destroy();
   rsiChartInst = new Chart(canvas, {
@@ -697,7 +704,13 @@ function buildRsiChart(rsiData) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          callbacks: { label: ctx => 'RSI: ' + ctx.parsed.y.toFixed(2) }
+          callbacks: {
+            label: ctx => {
+              const sig = signals.find(s => s.idx === ctx.dataIndex);
+              if (sig) return ['RSI: ' + ctx.parsed.y.toFixed(2), (sig.type==='SAFE'?'↓ ':'↑ ') + sig.label];
+              return 'RSI: ' + ctx.parsed.y.toFixed(2);
+            }
+          }
         },
         annotation: { annotations }
       },
