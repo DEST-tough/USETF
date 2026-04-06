@@ -593,8 +593,8 @@ const DUMMY = {
 };
 
 const MODE = {
-  SAFE: { buy:0.97, sell:1.002, days:30, buyTxt:'×0.970 (SAFE −3%)', sellTxt:'×1.002', holdTxt:'최대 30일' },
-  AGGR: { buy:0.95, sell:1.025, days:7,  buyTxt:'×0.950 (AGGR −5%)', sellTxt:'×1.025', holdTxt:'최대 7일' },
+  SAFE: { buy:1.03, sell:1.002, days:30, buyTxt:'×1.030 (SAFE +3%)', sellTxt:'×1.002', holdTxt:'최대 30일' },
+  AGGR: { buy:1.05, sell:1.025, days:7,  buyTxt:'×1.050 (AGGR +5%)', sellTxt:'×1.025', holdTxt:'최대 7일' },
 };
 let currentMode = 'SAFE';
 
@@ -648,36 +648,41 @@ function buildRsiChart(rsiData) {
     };
   });
 
-  // 전환 신호 포인트만 (레이블 제거 - 툴팁으로 대체)
-  signals.forEach((s, i) => {
-    const isSafeSignal = s.type === 'SAFE';
-    annotations['sig'+i] = {
-      type: 'point',
-      xValue: s.idx,
-      yValue: s.val,
-      radius: 5,
-      backgroundColor: isSafeSignal ? 'rgba(77,168,255,0.85)' : 'rgba(255,107,53,0.85)',
-      borderColor: isSafeSignal ? '#4da8ff' : '#ff6b35',
-      borderWidth: 2,
-    };
+  // 최소 8봉 간격 필터링
+  const filtered = [];
+  signals.forEach(s => {
+    const prev = filtered[filtered.length - 1];
+    if (!prev || s.idx - prev.idx >= 8) filtered.push(s);
   });
 
-  // 가장 최근 신호만 레이블 표시
-  if (signals.length > 0) {
-    const last = signals[signals.length - 1];
-    const isSafeLast = last.type === 'SAFE';
-    annotations['lastLbl'] = {
+  // 포인트 + 레이블
+  filtered.forEach((s, i) => {
+    const safe  = s.type === 'SAFE';
+    const color = safe ? '#4da8ff' : '#ff8c42';
+    const yOff  = safe ? -10 : 10;
+    annotations['pt'+i] = {
+      type: 'point',
+      xValue: s.idx, yValue: s.val,
+      radius: 5,
+      backgroundColor: color,
+      borderColor: 'rgba(0,0,0,0.5)',
+      borderWidth: 1,
+    };
+    annotations['lb'+i] = {
       type: 'label',
-      xValue: last.idx,
-      yValue: last.val + (isSafeLast ? -9 : 9),
-      content: (isSafeLast ? '↓ ' : '↑ ') + last.label,
-      color: isSafeLast ? '#4da8ff' : '#ff6b35',
-      font: { size: 8, weight: 'bold' },
+      xValue: s.idx,
+      yValue: s.val + yOff,
+      content: [(safe ? '↓' : '↑') + (safe ? '→안전' : '→공세')],
+      color: color,
+      font: { size: 9, weight: 'bold' },
+      textAlign: 'center',
       padding: { top:2, bottom:2, left:4, right:4 },
-      backgroundColor: isSafeLast ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      borderColor: color,
+      borderWidth: 1,
       borderRadius: 3,
     };
-  }
+  });
 
   if (rsiChartInst) rsiChartInst.destroy();
   rsiChartInst = new Chart(canvas, {
