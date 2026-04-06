@@ -28,7 +28,7 @@ function initSheets() {
     cfg = ss.insertSheet(SHEET_CONFIG);
     cfg.getRange("A1:B1").setValues([["key", "value"]]);
     cfg.getRange("A2:B12").setValues([
-      ["initial_capital",   1000000],
+      ["initial_capital",   1000000],  // 초기자본금
       ["current_capital",   1000000],
       ["profit_reserve",    0],         // 수익 적립금 (이익×20%)
       ["profit_rate",       0.80],      // 이익 복리율
@@ -94,25 +94,84 @@ function writeConfig(key, value) {
   cfg.appendRow([key, value]);
 }
 
-// ── 슬롯 읽기 ──
+// ── 미국 증시 휴장일 (NYSE) ──
+var US_HOLIDAYS = {
+  '2025-01-01':1,'2025-01-20':1,'2025-02-17':1,'2025-04-18':1,
+  '2025-05-26':1,'2025-06-19':1,'2025-07-04':1,'2025-09-01':1,
+  '2025-11-27':1,'2025-12-25':1,
+  '2026-01-01':1,'2026-01-19':1,'2026-02-16':1,'2026-04-03':1,
+  '2026-05-25':1,'2026-06-19':1,'2026-07-03':1,'2026-09-07':1,
+  '2026-11-26':1,'2026-12-25':1,
+};
+
+function isTradingDay(d) {
+  var dow = d.getDay();
+  if (dow === 0 || dow === 6) return false;
+  var str = Utilities.formatDate(d, "America/New_York", "yyyy-MM-dd");
+  return !US_HOLIDAYS[str];
+}
+
+// ── 거래일 계산 (주말 + 미국 휴장일 제외) ──
+function addTradingDays(date, days) {
+  var d = new Date(date);
+  var added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    if (isTradingDay(d)) added++;
+  }
+  return d;
+}
+
+// ── 슬롯 읽기 + 자동 계산 ──
 function readSlots() {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_SLOTS);
   if (!sheet) return [];
-  var data = sheet.getDataRange().getValues();
+  var data  = sheet.getDataRange().getValues();
   var slots = [];
+  var needSave = false;
+
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
     if (!row[0]) continue;
+
+    var id         = row[0];
+    var status     = row[1] || 'EMPTY';
+    var entryPrice = row[2] ? parseFloat(row[2]) : null;
+    var entryDate  = row[3] ? new Date(row[3]) : null;
+    var entryMode  = row[4] || '';
+    var quantity   = row[5] ? parseInt(row[5]) : 0;
+    var sellTarget = row[6] ? parseFloat(row[6]) : null;
+    var expireDate = row[7] ? new Date(row[7]) : null;
+
+    // HOLDING 상태이고 매도목표가/만료일이 없으면 자동 계산 후 저장
+    if (status === 'HOLDING' && entryPrice && entryDate && entryMode) {
+      if (!sellTarget) {
+        sellTarget = entryMode === 'SAFE'
+          ? Math.round(entryPrice * 1.002 * 100) / 100
+          : Math.round(entryPrice * 1.025 * 100) / 100;
+        sheet.getRange(i + 1, 7).setValue(sellTarget);
+        needSave = true;
+      }
+      if (!expireDate) {
+        var maxDays = entryMode === 'SAFE' ? 30 : 7;
+        expireDate  = addTradingDays(entryDate, maxDays);
+        sheet.getRange(i + 1, 8).setValue(
+          Utilities.formatDate(expireDate, "Asia/Seoul", "yyyy-MM-dd")
+        );
+        needSave = true;
+      }
+    }
+
     slots.push({
-      id:          row[0],
-      status:      row[1],
-      entryPrice:  row[2] ? parseFloat(row[2]) : null,
-      entryDate:   row[3] ? Utilities.formatDate(new Date(row[3]), "Asia/Seoul", "yyyy-MM-dd") : "",
-      entryMode:   row[4] || "",
-      quantity:    row[5] ? parseInt(row[5]) : 0,
-      sellTarget:  row[6] ? parseFloat(row[6]) : null,
-      expireDate:  row[7] ? Utilities.formatDate(new Date(row[7]), "Asia/Seoul", "yyyy-MM-dd") : "",
+      id:         id,
+      status:     status,
+      entryPrice: entryPrice,
+      entryDate:  entryDate ? Utilities.formatDate(entryDate, "Asia/Seoul", "yyyy-MM-dd") : "",
+      entryMode:  entryMode,
+      quantity:   quantity,
+      sellTarget: sellTarget,
+      expireDate: expireDate ? Utilities.formatDate(expireDate, "Asia/Seoul", "yyyy-MM-dd") : "",
     });
   }
   return slots;

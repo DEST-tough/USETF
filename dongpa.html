@@ -593,6 +593,39 @@ const DUMMY = {
   ],
 };
 
+// 미국 증시 휴장일 (NYSE)
+const US_HOLIDAYS = new Set([
+  // 2025
+  '2025-01-01','2025-01-20','2025-02-17','2025-04-18',
+  '2025-05-26','2025-06-19','2025-07-04','2025-09-01',
+  '2025-11-27','2025-12-25',
+  // 2026
+  '2026-01-01','2026-01-19','2026-02-16','2026-04-03',
+  '2026-05-25','2026-06-19','2026-07-03','2026-09-07',
+  '2026-11-26','2026-12-25',
+]);
+
+function isTradingDay(d) {
+  const dow = d.getDay();
+  if (dow === 0 || dow === 6) return false;
+  const str = d.toISOString().slice(0,10);
+  return !US_HOLIDAYS.has(str);
+}
+
+// 거래일 수 계산 (주말 + 미국 휴장일 제외)
+function countTradingDays(from, to) {
+  let count = 0;
+  const d = new Date(from);
+  d.setHours(0,0,0,0);
+  const end = new Date(to);
+  end.setHours(0,0,0,0);
+  while (d < end) {
+    d.setDate(d.getDate() + 1);
+    if (isTradingDay(d)) count++;
+  }
+  return Math.max(0, count);
+}
+
 const MODE = {
   SAFE: { buy:1.03, sell:1.002, days:30, buyTxt:'×1.030 (SAFE +3%)', sellTxt:'×1.002', holdTxt:'최대 30일' },
   AGGR: { buy:1.05, sell:1.025, days:7,  buyTxt:'×1.050 (AGGR +5%)', sellTxt:'×1.025', holdTxt:'최대 7일' },
@@ -1101,8 +1134,8 @@ async function loadAndRender() {
         const entryD = new Date(s.entryDate);
         const expireD = new Date(s.expireDate);
         // 달력일 기준 (거래일 근사: 달력일 × 5/7)
-        const calDays = Math.floor((today - entryD) / (1000*60*60*24));
-        const holdDay = Math.round(calDays * 5 / 7);
+        // 거래일 기준 보유일 계산 (주말 제외)
+        const holdDay = countTradingDays(entryD, today);
         const maxDay  = s.entryMode === 'SAFE' ? 30 : 7;
         return {
           id: s.id, status: 'HOLDING',
