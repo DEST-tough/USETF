@@ -648,11 +648,14 @@ function buildRsiChart(rsiData) {
     };
   });
 
-  // 최소 8봉 간격 필터링
+  // 모드가 바뀔 때만 표시 (연속 같은 모드 신호 제거)
   const filtered = [];
   signals.forEach(s => {
     const prev = filtered[filtered.length - 1];
-    if (!prev || s.idx - prev.idx >= 8) filtered.push(s);
+    // 이전 신호와 모드가 다를 때만 추가 (첫 전환점만)
+    if (!prev || prev.type !== s.type) {
+      filtered.push(s);
+    }
   });
 
   // 포인트 + 레이블
