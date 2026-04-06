@@ -39,6 +39,7 @@ function initSheets() {
       ["current_mode",      "SAFE"],    // 현재 모드
       ["slot_count",        7],
       ["notes",             ""],
+      ["cycle_pnl",          0],         // 사이클 누적 손익
     ]);
     cfg.getRange("A1:B1").setFontWeight("bold");
   }
@@ -432,3 +433,133 @@ function doPost(e) {
 
 function ok()    { return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON); }
 function err(msg){ return ContentService.createTextOutput(JSON.stringify({ok:false,error:msg})).setMimeType(ContentService.MimeType.JSON); }
+
+// ── onEdit 트리거 (체결내역 입력 시 자동 처리) ──────────────
+function onEdit(e) {
+  var sheet = e.source.getActiveSheet();
+  if (sheet.getName() !== SHEET_HISTORY) return;
+
+  var row = e.range.getRow();
+  if (row <= 1) return; // 헤더 제외
+
+  var data = sheet.getRange(row, 1, 1, 7).getValues()[0];
+  var date    = data[0];
+  var slotId  = data[1];
+  var side    = data[2];
+  var price   = parseFloat(data[3]);
+  var qty     = parseInt(data[4]);
+
+  if (!date || !slotId || !side || !price || !qty) return;
+
+  var dateStr = Utilities.formatDate(new Date(date), "Asia/Seoul", "yyyy-MM-dd");
+
+  if (side === 'BUY') {
+    onBuyFilled(dateStr, slotId, price, qty);
+  } else if (side === 'SELL' || side === 'MOC') {
+    onSellFilled(dateStr, slotId, price, qty, side, row);
+  }
+}
+
+// ── 매수 체결 처리 ──
+function onBuyFilled(date, slotId, price, qty) {
+  var ss     = SpreadsheetApp.getActiveSpreadsheet();
+  var slots  = ss.getSheetByName(SHEET_SLOTS);
+  var cfg    = readConfig();
+  var mode   = cfg.current_mode || 'SAFE';
+
+  // 매도목표가 계산
+  var sellTarget = mode === 'SAFE'
+    ? Math.round(price * 1.002 * 100) / 100
+    : Math.round(price * 1.025 * 100) / 100;
+
+  // 만료일 계산
+  var maxDays   = mode === 'SAFE' ? 30 : 7;
+  var expireD   = addTradingDays(new Date(date), maxDays);
+  var expireStr = Utilities.formatDate(expireD, "Asia/Seoul", "yyyy-MM-dd");
+
+  // 슬롯상태 업데이트
+  var data = slots.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === slotId) {
+      slots.getRange(i+1, 1, 1, 8).setValues([[
+        slotId, 'HOLDING', price, date, mode, qty, sellTarget, expireStr
+      ]]);
+      break;
+    }
+  }
+
+  // 사이클 시작일 설정 (첫 매수 시)
+  var cfg2 = readConfig();
+  if (!cfg2.cycle_start_date) {
+    writeConfig('cycle_start_date', date);
+  }
+
+  // 체결내역 손익 0 자동입력
+  updateHistoryPnl(date, slotId, 'BUY', 0);
+
+  SpreadsheetApp.getActiveSpreadsheet().toast(
+    slotId + ' 매수 처리 완료 → 매도목표 $' + sellTarget + ' / 만료 ' + expireStr,
+    '✅ 자동처리', 4
+  );
+}
+
+// ── 매도 체결 처리 ──
+function onSellFilled(date, slotId, price, qty, side, histRow) {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var slots = ss.getSheetByName(SHEET_SLOTS);
+
+  // 슬롯에서 매수가 찾기
+  var slotData  = slots.getDataRange().getValues();
+  var entryPrice = null;
+  var entryQty   = null;
+  for (var i = 1; i < slotData.length; i++) {
+    if (slotData[i][0] === slotId && slotData[i][1] === 'HOLDING') {
+      entryPrice = parseFloat(slotData[i][2]);
+      entryQty   = parseInt(slotData[i][5]);
+      break;
+    }
+  }
+
+  // 손익 계산
+  var pnl = entryPrice
+    ? Math.round((price - entryPrice) * qty * 100) / 100
+    : 0;
+
+  // 체결내역 손익 자동입력
+  var hist = ss.getSheetByName(SHEET_HISTORY);
+  hist.getRange(histRow, 6).setValue(pnl);
+
+  // 슬롯상태 EMPTY로 초기화
+  for (var j = 1; j < slotData.length; j++) {
+    if (slotData[j][0] === slotId) {
+      slots.getRange(j+1, 1, 1, 8).setValues([[
+        slotId, 'EMPTY', '', '', '', '', '', ''
+      ]]);
+      break;
+    }
+  }
+
+  // 사이클 손익 누계 업데이트 (설정 시트)
+  var cfg = readConfig();
+  var curPnl = parseFloat(cfg.cycle_pnl) || 0;
+  writeConfig('cycle_pnl', Math.round((curPnl + pnl) * 100) / 100);
+
+  SpreadsheetApp.getActiveSpreadsheet().toast(
+    slotId + ' 매도 처리 완료 → 손익 $' + pnl + ' / 슬롯 EMPTY',
+    '✅ 자동처리', 4
+  );
+}
+
+// ── 체결내역 손익 업데이트 헬퍼 ──
+function updateHistoryPnl(date, slotId, side, pnl) {
+  var ss   = SpreadsheetApp.getActiveSpreadsheet();
+  var hist = ss.getSheetByName(SHEET_HISTORY);
+  var data = hist.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 1; i--) {
+    var d = data[i][0] ? Utilities.formatDate(new Date(data[i][0]), "Asia/Seoul", "yyyy-MM-dd") : '';
+    if (d === date && data[i][1] === slotId && data[i][2] === side) {
+      hist.getRange(i+1, 6).setValue(pnl);
+      return;
+    }
+  }
+}
