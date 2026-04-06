@@ -882,7 +882,6 @@ function updatePriceStrip(mode) {
   document.getElementById('holdLimit').textContent = p.holdTxt;
 
   // 슬롯당 주수 환산
-  const buyP   = DUMMY.soxlClose * p.buy;
   const shares = Math.floor((DUMMY.capital / 7) / buyP);
   document.getElementById('slotShares').textContent =
     shares.toLocaleString() + '주 ($' + buyP.toFixed(2) + ' 기준)';
