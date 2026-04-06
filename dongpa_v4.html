@@ -669,24 +669,55 @@ function buildRsiChart(rsiData) {
   });
 
   // 전환 신호 레이블 annotate (간단 버전)
-  updateRsiSignal(rsiData[rsiData.length-1], rsiData[rsiData.length-2]);
+  updateRsiSignal(rsiData);
 }
 
-function updateRsiSignal(cur, prev) {
-  const el = document.getElementById('rsiModeSig');
+function detectMode(rsiArr) {
+  // 최소 2개 필요
+  if (rsiArr.length < 2) return 'SAFE';
+  const cur  = rsiArr[rsiArr.length - 1];
+  const prev = rsiArr[rsiArr.length - 2];
+
+  // 안전모드 전환 조건
+  const toSafe =
+    (prev >= 65 && cur < prev) ||                          // 65↑ 하락전환
+    (prev >= 40 && prev <= 50 && cur < prev) ||            // 40~50 하락전환
+    (prev >= 50 && cur < 50);                              // 50 하락돌파
+
+  // 공세모드 전환 조건
+  const toAggr =
+    (prev < 50 && cur > 50) ||                             // 50 상승돌파
+    (prev >= 50 && prev <= 60 && cur > prev) ||            // 50~60 상승전환
+    (prev <= 35 && cur > prev);                            // 35↓ 상승전환
+
+  if (toSafe) return 'SAFE';
+  if (toAggr) return 'AGGR';
+  return null; // 유지
+}
+
+function updateRsiSignal(rsiArr) {
+  const cur  = rsiArr[rsiArr.length - 1];
+  const prev = rsiArr[rsiArr.length - 2];
+  const el   = document.getElementById('rsiModeSig');
   const curN = document.getElementById('rsiCurrent');
   curN.textContent = cur.toFixed(2);
 
-  let sig = '';
-  if (prev >= 65 && cur < prev)        sig = '↓ RSI 65↑ 하락전환 → SAFE 모드';
-  else if (prev >= 40 && prev <= 50 && cur < prev) sig = '↓ RSI 40~50 하락전환 → SAFE 모드';
-  else if (prev >= 50 && cur < 50)     sig = '↓ RSI 50 하락돌파 → SAFE 모드';
-  else if (prev < 50 && cur > 50)      sig = '↑ RSI 50 상승돌파 → AGGRESSIVE 모드';
-  else if (prev >= 50 && prev <= 60 && cur > prev) sig = '↑ RSI 50~60 상승전환 → AGGRESSIVE 모드';
-  else if (prev <= 35 && cur > prev)   sig = '↑ RSI 35↓ 상승전환 → AGGRESSIVE 모드';
-  else sig = `RSI ${cur.toFixed(2)} — ${currentMode} 모드 유지`;
-
-  el.textContent = sig;
+  // 안전모드 조건
+  if (prev >= 65 && cur < prev)
+    el.textContent = '↓ RSI 65↑ 하락전환 → SAFE 모드';
+  else if (prev >= 40 && prev <= 50 && cur < prev)
+    el.textContent = '↓ RSI 40~50 하락전환 → SAFE 모드';
+  else if (prev >= 50 && cur < 50)
+    el.textContent = '↓ RSI 50 하락돌파 → SAFE 모드';
+  // 공세모드 조건
+  else if (prev < 50 && cur > 50)
+    el.textContent = '↑ RSI 50 상승돌파 → AGGRESSIVE 모드';
+  else if (prev >= 50 && prev <= 60 && cur > prev)
+    el.textContent = '↑ RSI 50~60 상승전환 → AGGRESSIVE 모드';
+  else if (prev <= 35 && cur > prev)
+    el.textContent = '↑ RSI 35↓ 상승전환 → AGGRESSIVE 모드';
+  else
+    el.textContent = `RSI ${cur.toFixed(2)} — ${currentMode} 모드 유지`;
 }
 
 /* ══ 원주문표 렌더 ══ */
@@ -932,7 +963,9 @@ async function fetchQqqRsi() {
   try {
     const res  = await fetch(YAHOO_URL + '?symbol=QQQ&interval=1wk&range=2y');
     const json = await res.json();
-    const closes = json.chart.result[0].indicators.quote[0].close;
+    const rawCloses = json.chart.result[0].indicators.quote[0].close;
+    // null 제거 + 미완성 주봉(마지막 봉) 제외
+    const closes = rawCloses.filter(v => v != null).slice(0, -1);
     // SMA 방식 RSI 계산 (Pine Script 동일)
     const period = 14;
     const rsi = [];
@@ -971,6 +1004,9 @@ async function loadAndRender() {
   // RSI 업데이트
   DUMMY.rsiHistory = rsiData;
 
+  // ── GS 연동 안 됐을 때 더미 데이터 명시적 사용 ──
+  // (구글시트 연동 후엔 gsData로 모두 덮어씌워짐)
+
   if (gsData) {
     // 설정
     currentMode = gsData.currentMode || 'SAFE';
@@ -987,7 +1023,9 @@ async function loadAndRender() {
         const today = new Date();
         const entryD = new Date(s.entryDate);
         const expireD = new Date(s.expireDate);
-        const holdDay = Math.floor((today - entryD) / (1000*60*60*24));
+        // 달력일 기준 (거래일 근사: 달력일 × 5/7)
+        const calDays = Math.floor((today - entryD) / (1000*60*60*24));
+        const holdDay = Math.round(calDays * 5 / 7);
         const maxDay  = s.entryMode === 'SAFE' ? 30 : 7;
         return {
           id: s.id, status: 'HOLDING',
