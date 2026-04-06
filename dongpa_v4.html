@@ -1004,17 +1004,20 @@ async function loadAndRender() {
   // RSI 업데이트
   DUMMY.rsiHistory = rsiData;
 
-  // ── GS 연동 안 됐을 때 더미 데이터 명시적 사용 ──
-  // (구글시트 연동 후엔 gsData로 모두 덮어씌워짐)
+  // RSI 판별 → 모드 결정 (GS 설정보다 RSI 우선)
+  const rsiMode = detectMode(rsiData);
+  if (rsiMode) {
+    currentMode = rsiMode;
+    isSafe = currentMode === 'SAFE';
+    colorTarget = isSafe ? 0 : 1;
+    document.body.className        = isSafe ? 'safe' : 'aggr';
+    document.body.style.background = isSafe ? '#001824' : '#200800';
+    document.body.style.color      = isSafe ? '#b8e8f8' : '#ffd8b0';
+    document.getElementById('modeTxt').textContent = currentMode;
+  }
 
   if (gsData) {
-    // 설정
-    currentMode = gsData.currentMode || 'SAFE';
-    isSafe      = currentMode === 'SAFE';
-    colorTarget = isSafe ? 0 : 1;
-    document.body.className    = isSafe ? 'safe' : 'aggr';
-    document.body.style.background = isSafe ? '#001824' : '#200800';
-    document.getElementById('modeTxt').textContent = currentMode;
+    // currentMode는 RSI 판별값 유지 (GS 저장값으로 덮어쓰지 않음)
 
     // 슬롯
     if (gsData.slots && gsData.slots.length) {
