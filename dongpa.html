@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>동적파도타기 DONGPA</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
 <style>
 :root {
   --accent:  #00d4ff;
@@ -600,31 +601,76 @@ let currentMode = 'SAFE';
 /* ══ RSI 차트 ══ */
 let rsiChartInst = null;
 
+function detectAllSignals(rsiData) {
+  // 전체 RSI 배열에서 모든 전환 신호 찾기
+  const signals = [];
+  for (let i = 1; i < rsiData.length; i++) {
+    const cur  = rsiData[i];
+    const prev = rsiData[i-1];
+    // 안전모드 전환
+    if ((prev >= 65 && cur < prev) ||
+        (prev >= 40 && prev <= 50 && cur < prev) ||
+        (prev >= 50 && cur < 50)) {
+      signals.push({ idx: i, type: 'SAFE', val: cur,
+        label: prev >= 50 && cur < 50 ? '하락돌파→안전' :
+               prev >= 65 ? '하락전환→안전' : '하락전환→안전' });
+    }
+    // 공세모드 전환
+    else if ((prev < 50 && cur > 50) ||
+             (prev >= 50 && prev <= 60 && cur > prev) ||
+             (prev <= 35 && cur > prev)) {
+      signals.push({ idx: i, type: 'AGGR', val: cur,
+        label: prev < 50 && cur > 50 ? '상승돌파→공세' :
+               prev <= 35 ? '상승전환→공세' : '상승전환→공세' });
+    }
+  }
+  return signals;
+}
+
 function buildRsiChart(rsiData) {
   const labels = rsiData.map((_,i) => i === rsiData.length-1 ? '현재' : '');
   const canvas = document.getElementById('rsiChart');
 
-  // 기준선 plugin
-  const zonePlugin = {
-    id:'zones',
-    beforeDraw(chart) {
-      const {ctx,chartArea:{left,right,top,bottom},scales:{y}} = chart;
-      const zones = [
-        {val:65, color:'rgba(0,229,160,0.08)'},
-        {val:50, color:'rgba(255,210,64,0.06)'},
-        {val:35, color:'rgba(255,64,96,0.08)'},
-      ];
-      zones.forEach(z => {
-        const yp = y.getPixelForValue(z.val);
-        ctx.save();
-        ctx.strokeStyle = z.color.replace('0.08','0.35').replace('0.06','0.3');
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4,4]);
-        ctx.beginPath(); ctx.moveTo(left,yp); ctx.lineTo(right,yp); ctx.stroke();
-        ctx.restore();
-      });
-    }
-  };
+  // 모든 전환 신호 찾기
+  const signals = detectAllSignals(rsiData);
+
+  // annotation 객체 생성
+  const annotations = {};
+
+  // 기준선 3개
+  ['35','50','65'].forEach(v => {
+    annotations['line'+v] = {
+      type: 'line', yMin: +v, yMax: +v,
+      borderColor: v==='50' ? 'rgba(255,210,64,0.35)' :
+                   v==='65' ? 'rgba(0,229,160,0.35)' : 'rgba(255,64,96,0.35)',
+      borderWidth: 1,
+      borderDash: [4,4],
+    };
+  });
+
+  // 전환 신호 포인트
+  signals.forEach((s, i) => {
+    const isSafeSignal = s.type === 'SAFE';
+    annotations['sig'+i] = {
+      type: 'point',
+      xValue: s.idx,
+      yValue: s.val,
+      radius: 5,
+      backgroundColor: isSafeSignal ? 'rgba(77,168,255,0.9)' : 'rgba(255,107,53,0.9)',
+      borderColor: isSafeSignal ? '#4da8ff' : '#ff6b35',
+      borderWidth: 2,
+    };
+    // 레이블
+    annotations['lbl'+i] = {
+      type: 'label',
+      xValue: s.idx,
+      yValue: s.val + (isSafeSignal ? -7 : 7),
+      content: (isSafeSignal ? '↓ ' : '↑ ') + s.label,
+      color: isSafeSignal ? '#4da8ff' : '#ff6b35',
+      font: { size: 8, weight: 'bold' },
+      padding: 2,
+    };
+  });
 
   if (rsiChartInst) rsiChartInst.destroy();
   rsiChartInst = new Chart(canvas, {
@@ -635,7 +681,10 @@ function buildRsiChart(rsiData) {
         data: rsiData,
         borderColor: '#cc3060',
         borderWidth: 1.5,
-        pointRadius: rsiData.map((_,i) => i===rsiData.length-1 ? 5 : 0),
+        pointRadius: rsiData.map((_,i) => {
+          const isSig = signals.some(s => s.idx === i);
+          return i === rsiData.length-1 ? 5 : (isSig ? 0 : 0);
+        }),
         pointBackgroundColor: '#ffd240',
         pointBorderColor: '#ffd240',
         tension: 0.3,
@@ -646,29 +695,27 @@ function buildRsiChart(rsiData) {
       responsive: true, maintainAspectRatio: false,
       animation: { duration: 800 },
       plugins: {
-        legend: { display:false },
+        legend: { display: false },
         tooltip: {
           callbacks: { label: ctx => 'RSI: ' + ctx.parsed.y.toFixed(2) }
-        }
+        },
+        annotation: { annotations }
       },
       scales: {
-        x: { display:false },
+        x: { display: false },
         y: {
-          min:20, max:90,
-          grid: { color:'rgba(255,255,255,0.04)' },
+          min: 15, max: 95,
+          grid: { color: 'rgba(255,255,255,0.04)' },
           ticks: {
-            color:'#3a6880', font:{size:8},
-            values:[35,50,65],
+            color: '#3a6880', font: { size: 8 },
             callback: v => [35,50,65].includes(v) ? v : '',
           },
-          border: { display:false }
+          border: { display: false }
         }
       }
     },
-    plugins: [zonePlugin]
   });
 
-  // 전환 신호 레이블 annotate (간단 버전)
   updateRsiSignal(rsiData);
 }
 
