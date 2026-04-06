@@ -272,6 +272,7 @@ html, body {
       <div class="pi-label">슬롯당 매수금액</div>
       <div class="pi-val ac" id="slotCap" style="font-size:15px">$142,857</div>
       <div class="pi-sub">투자금 ÷ 7</div>
+      <div id="slotShares" style="font-size:11px;color:var(--green);margin-top:3px;font-weight:500">— 주</div>
     </div>
     <div class="card" style="padding:11px 12px">
       <div class="pi-label">매도조건 / 보유한도</div>
@@ -879,6 +880,12 @@ function updatePriceStrip(mode) {
   document.getElementById('slotCap').textContent   = '$' + Math.floor(slotCap).toLocaleString();
   document.getElementById('sellCond').textContent  = p.sellTxt;
   document.getElementById('holdLimit').textContent = p.holdTxt;
+
+  // 슬롯당 주수 환산
+  const buyP   = DUMMY.soxlClose * p.buy;
+  const shares = Math.floor((DUMMY.capital / 7) / buyP);
+  document.getElementById('slotShares').textContent =
+    shares.toLocaleString() + '주 ($' + buyP.toFixed(2) + ' 기준)';
 }
 
 /* ══ 현황 탭 업데이트 ══ */
