@@ -649,12 +649,13 @@ async function runAnalysis() {
     // ── 5. 점수 계산 ──
     const scores = calcScore(top3Results);
 
-    // 정배열 여부 (Pro1 제외 조건)
+    // 정배열 여부
+    // 정배열 O → Pro1 제외 (상승장에서 Pro1은 너무 보수적)
+    // 정배열 X → Pro1 포함 (하락/불확실 구간에서 Pro1 유효)
     const isAligned = inds.align;
 
-    // 최고점 전략 (정배열 아니면 Pro1 제외)
-    const validKeys = isAligned ? ['Pro1','Pro2','Pro3'] : ['Pro2','Pro3'];
-    // Pro1이 정배열 아닐 때 점수표에는 표시하되 추천에서만 제외
+    // 정배열 O → Pro1 제외, 정배열 X → Pro1 포함
+    const validKeys = isAligned ? ['Pro2','Pro3'] : ['Pro1','Pro2','Pro3'];
     const bestKey = validKeys.reduce((a,b) => scores[a] > scores[b] ? a : b);
 
     // 분석 기준일 (야후파이낸스 마지막 거래일 + 1영업일)
@@ -762,13 +763,13 @@ function renderAnalysis({ lastDate, recDate, inds, top3, scores, bestKey, isAlig
   const sortedKeys = ['Pro1','Pro2','Pro3'].sort((a,b) => scores[b]-scores[a]);
   sg.innerHTML = ['Pro1','Pro2','Pro3'].map(k => {
     const isWinner = k === bestKey;
-    const isExcluded = !isAligned && k === 'Pro1';
+    const isExcluded = isAligned && k === 'Pro1';  // 정배열O일 때 Pro1 제외
     const rank = sortedKeys.indexOf(k) + 1;
     return `<div class="score-card ${isWinner?'winner':''} ${isExcluded?'excluded':''}">
       <div class="score-pro-name">${k}</div>
       <div class="score-value">${scores[k].toFixed(3)}</div>
       <div class="score-rank">${isExcluded ? '' : rank+'위'}</div>
-      ${isExcluded ? '<div class="score-excluded-note">정배열 아님 → 제외</div>' : ''}
+      ${isExcluded ? '<div class="score-excluded-note">정배열 → 제외</div>' : ''}
     </div>`;
   }).join('');
 
