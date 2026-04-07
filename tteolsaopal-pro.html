@@ -631,10 +631,32 @@ async function runAnalysis() {
     setStatus('loading', '전략 성과 시뮬레이션 중...');
 
     // ── 4. Top3 각 구간에서 전략 성과 계산 ──
+    // 성과 구간: 유사구간 끝날부터 달력 30일 후 가장 가까운 거래일까지
+    function findPerfEndIdx(startIdx) {
+      const startDate = new Date(HIST_DATES[startIdx] + 'T00:00:00Z');
+      const targetDate = new Date(startDate);
+      targetDate.setDate(targetDate.getDate() + 30);
+      // 비거래일이면 이전 거래일 우선 (역방향 탐색)
+      for (let o = 0; o <= 3; o++) {
+        const d = new Date(targetDate); d.setDate(d.getDate() - o);
+        const ds = d.toISOString().slice(0, 10);
+        const i = HIST_DATES.indexOf(ds);
+        if (i >= 0 && i < HIST_LEN) return i;
+      }
+      for (let o = 1; o <= 3; o++) {
+        const d = new Date(targetDate); d.setDate(d.getDate() + o);
+        const ds = d.toISOString().slice(0, 10);
+        const i = HIST_DATES.indexOf(ds);
+        if (i >= 0 && i < HIST_LEN) return i;
+      }
+      return Math.min(startIdx + 22, HIST_LEN - 1);
+    }
+
     const top3Results = top3.map(t => {
-      const perfCloses = HIST_CLOSES.slice(t.endIdx, Math.min(t.endIdx + GAP + 1, HIST_LEN));
+      const perfEndIdx = findPerfEndIdx(t.endIdx);
+      const perfCloses = HIST_CLOSES.slice(t.endIdx, perfEndIdx + 1);
       const perfStart  = HIST_DATES[t.endIdx];
-      const perfEnd    = HIST_DATES[Math.min(t.endIdx + GAP, HIST_LEN-1)];
+      const perfEnd    = HIST_DATES[perfEndIdx];
       return {
         period: HIST_DATES[t.startIdx] + ' ~ ' + t.date,
         perfPeriod: perfStart + ' ~ ' + perfEnd,
