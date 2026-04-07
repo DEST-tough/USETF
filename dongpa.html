@@ -270,7 +270,7 @@ html, body {
     </div>
     <div class="card" style="padding:11px 12px">
       <div class="pi-label">슬롯당 매수금액</div>
-      <div class="pi-val ac" id="slotCap" style="font-size:15px">$142,857</div>
+      <div class="pi-val ac" id="slotCap" style="font-size:15px">—</div>
       <div class="pi-sub">투자금 ÷ 7</div>
       <div id="slotShares" style="font-size:11px;color:var(--green);margin-top:3px;font-weight:500">— 주</div>
     </div>
@@ -324,18 +324,18 @@ html, body {
     <div class="perf-grid">
       <div class="pf-card">
         <div class="pf-label">총 수익률</div>
-        <div class="pf-val g" id="totalReturn">+1.28%</div>
-        <div class="pf-sub" id="totalPnl">+$12,840</div>
+        <div class="pf-val g" id="totalReturn">—</div>
+        <div class="pf-sub" id="totalPnl">—</div>
       </div>
       <div class="pf-card">
         <div class="pf-label">연환산 (CAGR)</div>
-        <div class="pf-val ac" id="cagr">+18.4%</div>
-        <div class="pf-sub" id="tradingDays">운용 25일</div>
+        <div class="pf-val ac" id="cagr">—</div>
+        <div class="pf-sub" id="tradingDays">—</div>
       </div>
       <div class="pf-card">
         <div class="pf-label">승률</div>
-        <div class="pf-val ac" id="winRate">82%</div>
-        <div class="pf-sub" id="winLoss">14승 3패</div>
+        <div class="pf-val ac" id="winRate">—</div>
+        <div class="pf-sub" id="winLoss">—</div>
       </div>
     </div>
     <!-- 수익 적립금 -->
@@ -345,7 +345,7 @@ html, body {
         <div style="font-size:9px;color:var(--muted2);margin-top:2px">이익의 20% 별도 적립분</div>
       </div>
       <div style="text-align:right">
-        <div class="pf-val g" id="profitReserve" style="font-size:18px">+$2,568</div>
+        <div class="pf-val g" id="profitReserve" style="font-size:18px">—</div>
         <div style="font-size:9px;color:var(--muted2);margin-top:2px" id="reserveRate">이익복리율 80% / 적립 20%</div>
       </div>
     </div>
@@ -367,12 +367,12 @@ html, body {
     <div class="cap-grid">
       <div class="card">
         <div class="pf-label">현재 투자금</div>
-        <div class="pf-val ac" id="curCap" style="font-size:15px">$1,012,840</div>
-        <div class="pf-sub">초기 $1,000,000</div>
+        <div class="pf-val ac" id="curCap" style="font-size:15px">—</div>
+        <div class="pf-sub">초기 —</div>
       </div>
       <div class="card">
         <div class="pf-label">슬롯당 매수금액</div>
-        <div class="pf-val" id="slotCapStatus" style="font-size:15px">$144,691</div>
+        <div class="pf-val" id="slotCapStatus" style="font-size:15px">—</div>
         <div class="pf-sub">투자금 ÷ 7</div>
       </div>
     </div>
@@ -380,27 +380,27 @@ html, body {
       <div class="card">
         <div class="pf-label">복리 사이클</div>
         <div class="cyc-track"><div class="cyc-fill" id="cycFill" style="width:70%"></div></div>
-        <div class="cyc-info"><span id="cycDay">7/10 거래일</span><span id="cycLeft">3일 후 갱신</span></div>
+        <div class="cyc-info"><span id="cycDay">7/10 거래일</span><span id="cycLeft">— 후 갱신</span></div>
       </div>
       <div class="card">
         <div class="pf-label">이번 사이클 손익</div>
-        <div class="pf-val g" id="cyclePnl" style="font-size:14px">+$8,240</div>
+        <div class="pf-val g" id="cyclePnl" style="font-size:14px">—</div>
         <div class="pf-sub">매도 완료 기준</div>
       </div>
       <div class="card">
         <div class="pf-label">갱신 시 예상 투자금</div>
-        <div class="pf-val ac" id="nextCap" style="font-size:14px">$1,019,432</div>
-        <div class="pf-sub" id="nextCapCalc">+$8,240 × 0.8</div>
+        <div class="pf-val ac" id="nextCap" style="font-size:14px">—</div>
+        <div class="pf-sub" id="nextCapCalc">—</div>
       </div>
     </div>
     <div class="card" style="margin-top:0">
       <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted2)">
         <span>마지막 갱신일</span>
-        <span id="lastRenewal">2026-03-28</span>
+        <span id="lastRenewal">—</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted2);margin-top:4px">
         <span>다음 갱신 예정일</span>
-        <span id="nextRenewal">2026-04-11</span>
+        <span id="nextRenewal">—</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted2);margin-top:4px">
         <span>복리율</span>
@@ -501,6 +501,7 @@ const DUMMY = {
   initialCapital: 1000000,
   capital: 1000000,
   lastRenewal: '2026-03-28',
+  cycleStartDate: '2026-03-28',
   cycleDay: 7,
   cyclePnl: 8240,
   slots: [
@@ -521,7 +522,7 @@ const DUMMY = {
   nextCapital: 1019432,
   nextReserve: 4210,
   addedReserve: 1648,
-  performance: { totalPnl:12840, totalReturn:1.28, cagr:18.4, tradingDays:25, wins:14, losses:3, winRate:82 },
+  performance: null,
   equityChart: null,
   history: [],
   rsiHistory: [
@@ -548,6 +549,17 @@ function isTradingDay(d) {
   if (dow === 0 || dow === 6) return false;
   const str = d.toISOString().slice(0,10);
   return !US_HOLIDAYS.has(str);
+}
+
+// N 거래일 후 날짜 계산
+function addTradingDaysJS(date, days) {
+  const d = new Date(date);
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    if (isTradingDay(d)) added++;
+  }
+  return d;
 }
 
 // 거래일 수 계산 (주말 + 미국 휴장일 제외)
@@ -902,6 +914,16 @@ function updateStatus() {
 
   document.getElementById('lastRenewal').textContent = DUMMY.lastRenewal || '—';
 
+  // 다음 갱신 예정일 = 사이클 시작일 + 10거래일
+  const cycleStartStr = DUMMY.cycleStartDate || DUMMY.lastRenewal || '';
+  if (cycleStartStr) {
+    const nextDate = addTradingDaysJS(new Date(cycleStartStr), 10);
+    document.getElementById('nextRenewal').textContent =
+      nextDate.toISOString().slice(0, 10);
+  } else {
+    document.getElementById('nextRenewal').textContent = '—';
+  }
+
   // 수익 적립금
   const res = DUMMY.profitReserve || 0;
   document.getElementById('profitReserve').textContent = (res >= 0 ? '+$' : '-$') + Math.abs(Math.round(res)).toLocaleString();
@@ -1188,7 +1210,8 @@ async function loadAndRender() {
     DUMMY.profitReserve= gsData.profitReserve  || 0;
     DUMMY.cyclePnl     = gsData.cyclePnl       || 0;
     DUMMY.cycleDay     = gsData.cycleTradeDays || 0;
-    DUMMY.lastRenewal  = gsData.lastRenewalDate|| '';
+    DUMMY.lastRenewal    = gsData.lastRenewalDate  || '';
+    DUMMY.cycleStartDate = gsData.cycleStartDate   || '';
     DUMMY.profitRate   = gsData.profitRate     || 0.80;
     DUMMY.lossRate     = gsData.lossRate       || 0.30;
     DUMMY.nextCapital  = gsData.nextCapital    || DUMMY.capital;
