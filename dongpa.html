@@ -953,10 +953,11 @@ function renderVerify(slots) {
       ? '<span class="tag-safe">SAFE</span>'
       : '<span class="tag-aggr">AGGR</span>';
     const sellMult = s.entryMode === 'SAFE' ? '×1.002' : '×1.025';
-    const expire   = s.expireDate ? s.expireDate.slice(5) : '—';
-    const isExpired = s.expireDate && new Date(s.expireDate) <= new Date();
+    const expireRaw = s.expireDate || s.expire_date || '';
+    const expire    = expireRaw ? expireRaw.slice(5) : '—';
+    const isExpired = expireRaw && new Date(expireRaw) <= new Date();
     const expireStyle = isExpired ? 'color:var(--red)' : 'font-size:9px';
-    const expireText  = isExpired ? expire + ' 만료' : expire;
+    const expireText  = expireRaw ? (isExpired ? expire + ' 만료' : expire) : '—';
     const ok = s.sellTarget && s.entryPrice && s.expireDate ? '✓' : '!';
     const okClass = ok === '✓' ? 'ok' : 'bad';
     return `<tr>
@@ -975,15 +976,32 @@ function renderVerify(slots) {
 let equityChartInst = null;
 
 function buildEquityChart() {
-  // 더미 누적 투자금 데이터 (거래일 기준)
-  const equityData = [
-    1000000, 1000000, 1001200, 1001200, 1002400,
-    1002400, 1003100, 1001800, 1001800, 1003500,
-    1003500, 1005200, 1005200, 1006800, 1006800,
-    1006800, 1008100, 1008100, 1009400, 1009400,
-    1010200, 1010200, 1011500, 1011500, 1012840,
-  ];
-  const labels = equityData.map((_,i) => i === equityData.length-1 ? '현재' : '');
+  // GS equityChart 우선, 없으면 history 기반 생성
+  let equityData, labels;
+  if (DUMMY.equityChart && DUMMY.equityChart.data && DUMMY.equityChart.data.length > 1) {
+    equityData = DUMMY.equityChart.data;
+    labels     = DUMMY.equityChart.labels || equityData.map((_,i) => i===equityData.length-1?'현재':'');
+  } else {
+    // history 기반으로 누적 생성
+    const initCap = DUMMY.initialCapital || 1000;
+    const hist = (DUMMY.history || []).filter(h => h.side !== 'BUY').slice().reverse();
+    equityData = [initCap];
+    labels     = ['시작'];
+    let running = initCap;
+    hist.forEach(h => {
+      running += (h.pnl || 0);
+      equityData.push(Math.round(running));
+      labels.push((h.date||'').slice(5));
+    });
+    // 현재 사이클 미갱신 손익 추가
+    const cyclePnl = DUMMY.cyclePnl || 0;
+    if (cyclePnl !== 0) {
+      equityData.push(Math.round(running + cyclePnl));
+      labels.push('현재');
+    } else {
+      labels[labels.length-1] = '현재';
+    }
+  }
 
   if (equityChartInst) equityChartInst.destroy();
 
