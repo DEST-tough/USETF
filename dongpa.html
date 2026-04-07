@@ -353,7 +353,7 @@ html, body {
     <div class="card" style="margin-top:8px;padding:12px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:9px;color:var(--muted2);letter-spacing:0.1em">누적 투자금 추이</div>
-        <div style="font-size:9px;color:var(--muted2)">초기 $1,000,000 기준</div>
+        <div style="font-size:9px;color:var(--muted2)" id="equityChartTitle">초기 기준</div>
       </div>
       <div style="position:relative;height:120px">
         <canvas id="equityChart"></canvas>
@@ -953,8 +953,8 @@ function renderVerify(slots) {
       ? '<span class="tag-safe">SAFE</span>'
       : '<span class="tag-aggr">AGGR</span>';
     const sellMult = s.entryMode === 'SAFE' ? '×1.002' : '×1.025';
-    const expireRaw = s.expireDate || s.expire_date || '';
-    const expire    = expireRaw ? expireRaw.slice(5) : '—';
+    const expireRaw = String(s.expireDate || s.expire_date || '').trim();
+    const expire    = expireRaw.length >= 5 ? expireRaw.slice(5) : '—';
     const isExpired = expireRaw && new Date(expireRaw) <= new Date();
     const expireStyle = isExpired ? 'color:var(--red)' : 'font-size:9px';
     const expireText  = expireRaw ? (isExpired ? expire + ' 만료' : expire) : '—';
@@ -1006,6 +1006,11 @@ function buildEquityChart() {
   if (equityChartInst) equityChartInst.destroy();
 
   const canvas = document.getElementById('equityChart');
+  // 차트 타이틀 업데이트
+  const initCapTitle = DUMMY.initialCapital || 1000;
+  const titleEl = document.getElementById('equityChartTitle');
+  if (titleEl) titleEl.textContent = '초기 $' + initCapTitle.toLocaleString() + ' 기준';
+
   const isProfit = equityData[equityData.length-1] >= equityData[0];
   const lineColor = isProfit ? '#00e5a0' : '#ff4060';
   const fillColor = isProfit ? 'rgba(0,229,160,' : 'rgba(255,64,96,';
@@ -1172,12 +1177,12 @@ async function loadAndRender() {
           entryPrice: s.entryPrice, entryDate: s.entryDate,
           entryMode: s.entryMode,   qty: s.quantity,
           sellTarget: s.sellTarget, holdDay, maxDay,
+          expireDate: s.expireDate || '',
         };
       });
     }
 
     // 투자금
-    DUMMY.initialCapital = gsData.initialCapital || DUMMY.initialCapital;
     DUMMY.initialCapital = gsData.initialCapital || DUMMY.initialCapital;
     DUMMY.capital       = gsData.currentCapital  || DUMMY.capital;
     DUMMY.profitReserve= gsData.profitReserve  || 0;
