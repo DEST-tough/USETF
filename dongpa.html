@@ -418,51 +418,7 @@ html, body {
           <th>슬롯</th><th>매수가</th><th>매도목표</th><th>진입모드</th><th>만료일</th><th>조건</th><th>✓</th>
         </tr></thead>
         <tbody id="verifyBody">
-          <tr>
-            <td style="color:var(--muted2)">S3</td>
-            <td>$22.79</td>
-            <td style="color:var(--red)">$22.84</td>
-            <td><span class="tag-safe">SAFE</span></td>
-            <td style="font-size:9px">05/14</td>
-            <td style="font-size:9px;color:var(--muted2)">×1.002</td>
-            <td class="ok">✓</td>
-          </tr>
-          <tr>
-            <td style="color:var(--muted2)">S4</td>
-            <td>$25.26</td>
-            <td style="color:var(--red)">$25.31</td>
-            <td><span class="tag-safe">SAFE</span></td>
-            <td style="font-size:9px">05/19</td>
-            <td style="font-size:9px;color:var(--muted2)">×1.002</td>
-            <td class="ok">✓</td>
-          </tr>
-          <tr>
-            <td style="color:var(--muted2)">S5</td>
-            <td>$27.41</td>
-            <td style="color:var(--red)">$27.46</td>
-            <td><span class="tag-safe">SAFE</span></td>
-            <td style="font-size:9px;color:var(--red)">04/06 만료</td>
-            <td style="font-size:9px;color:var(--muted2)">×1.002</td>
-            <td class="bad">!</td>
-          </tr>
-          <tr>
-            <td style="color:var(--muted2)">S6</td>
-            <td>$24.10</td>
-            <td style="color:var(--red)">$24.15</td>
-            <td><span class="tag-safe">SAFE</span></td>
-            <td style="font-size:9px">05/05</td>
-            <td style="font-size:9px;color:var(--muted2)">×1.002</td>
-            <td class="ok">✓</td>
-          </tr>
-          <tr>
-            <td style="color:var(--muted2)">S7</td>
-            <td>$23.88</td>
-            <td style="color:var(--red)">$23.93</td>
-            <td><span class="tag-safe">SAFE</span></td>
-            <td style="font-size:9px">04/28</td>
-            <td style="font-size:9px;color:var(--muted2)">×1.002</td>
-            <td class="ok">✓</td>
-          </tr>
+
         </tbody>
       </table>
     </div>
@@ -477,27 +433,7 @@ html, body {
           <th>날짜</th><th>슬롯</th><th>구분</th><th>체결가</th><th>수량</th><th>손익</th>
         </tr></thead>
         <tbody id="historyBody">
-          <tr>
-            <td style="font-size:9px;color:var(--muted2)">04/03</td>
-            <td style="color:var(--muted2)">S2</td>
-            <td><span class="tag ts">매도</span></td>
-            <td>$26.12</td><td>5,421</td>
-            <td style="color:var(--green);font-weight:500">+$108</td>
-          </tr>
-          <tr>
-            <td style="font-size:9px;color:var(--muted2)">04/02</td>
-            <td style="color:var(--muted2)">S1</td>
-            <td><span class="tag ts">매도</span></td>
-            <td>$27.51</td><td>5,180</td>
-            <td style="color:var(--green);font-weight:500">+$55</td>
-          </tr>
-          <tr>
-            <td style="font-size:9px;color:var(--muted2)">03/28</td>
-            <td style="color:var(--muted2)">S3</td>
-            <td><span class="tag tm">MOC</span></td>
-            <td>$25.10</td><td>5,500</td>
-            <td style="color:var(--red);font-weight:500">−$1,210</td>
-          </tr>
+
         </tbody>
       </table>
     </div>
@@ -561,7 +497,9 @@ const YAHOO_URL  = '/yahoo';  // Cloudflare proxy
 const DUMMY = {
   soxlClose: 24.87,
   soxlDate: '04/04',
-  capital: 1012840,
+  initialCapital: 1000000,
+  initialCapital: 1000000,
+  capital: 1000000,
   lastRenewal: '2026-03-28',
   cycleDay: 7,
   cyclePnl: 8240,
@@ -922,41 +860,115 @@ function updatePriceStrip(mode) {
 
 /* ══ 현황 탭 업데이트 ══ */
 function updateStatus() {
-  const initCap = 1000000;
-  const totalPnl = DUMMY.capital - initCap;
-  const totalRet = (totalPnl / initCap * 100).toFixed(2);
-  document.getElementById('totalReturn').textContent = (totalPnl >= 0 ? '+' : '') + totalRet + '%';
-  document.getElementById('totalPnl').textContent    = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toLocaleString();
-  document.getElementById('curCap').textContent      = '$' + DUMMY.capital.toLocaleString();
+  const initCap  = DUMMY.initialCapital || DUMMY.capital;
+  const perf     = DUMMY.performance || {};
+
+  // 수익률 - GS performance 우선 사용
+  const totalPnl = perf.totalPnl !== undefined ? perf.totalPnl : (DUMMY.capital - initCap);
+  const totalRet = perf.totalReturn !== undefined ? perf.totalReturn : ((totalPnl / initCap) * 100).toFixed(2);
+  const cagr     = perf.cagr     !== undefined ? perf.cagr     : 0;
+  const days     = perf.tradingDays !== undefined && perf.tradingDays >= 0 ? perf.tradingDays : 0;
+  const wins     = perf.wins     || 0;
+  const losses   = perf.losses   || 0;
+  const winRate  = perf.winRate  || 0;
+
+  document.getElementById('totalReturn').textContent = (totalPnl >= 0 ? '+' : '') + Number(totalRet).toFixed(2) + '%';
+  document.getElementById('totalPnl').textContent    = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(Math.round(totalPnl)).toLocaleString();
+  document.getElementById('cagr').textContent        = (cagr >= 0 ? '+' : '') + Number(cagr).toFixed(1) + '%';
+  document.getElementById('tradingDays').textContent = '운용 ' + days + '일';
+  document.getElementById('winRate').textContent     = winRate + '%';
+  document.getElementById('winLoss').textContent     = wins + '승 ' + losses + '패';
+
+  // 투자금
+  document.getElementById('curCap').textContent        = '$' + DUMMY.capital.toLocaleString();
   document.getElementById('slotCapStatus').textContent = '$' + Math.floor(DUMMY.capital/7).toLocaleString();
 
-  const cycPct = DUMMY.cycleDay / 10 * 100;
+  // 복리 사이클
+  const cycPct = Math.min((DUMMY.cycleDay / 10) * 100, 100);
   document.getElementById('cycFill').style.width = cycPct + '%';
   document.getElementById('cycDay').textContent  = DUMMY.cycleDay + '/10 거래일';
-  document.getElementById('cycLeft').textContent = (10 - DUMMY.cycleDay) + '일 후 갱신';
-  document.getElementById('cyclePnl').textContent = (DUMMY.cyclePnl >= 0 ? '+$' : '-$') + Math.abs(DUMMY.cyclePnl).toLocaleString();
+  document.getElementById('cycLeft').textContent = Math.max(0, 10 - DUMMY.cycleDay) + '일 후 갱신';
 
-  const nextCap = DUMMY.capital + (DUMMY.cyclePnl >= 0
-    ? DUMMY.cyclePnl * 0.8
-    : DUMMY.cyclePnl * 0.3);
-  document.getElementById('nextCap').textContent     = '$' + Math.floor(nextCap).toLocaleString();
-  document.getElementById('nextCapCalc').textContent = DUMMY.cyclePnl >= 0
-    ? `+$${DUMMY.cyclePnl.toLocaleString()} × 0.8`
-    : `-$${Math.abs(DUMMY.cyclePnl).toLocaleString()} × 0.3`;
-  document.getElementById('lastRenewal').textContent = DUMMY.lastRenewal;
+  const cp = DUMMY.cyclePnl || 0;
+  document.getElementById('cyclePnl').textContent = (cp >= 0 ? '+$' : '-$') + Math.abs(Math.round(cp)).toLocaleString();
+
+  // 다음 갱신 예상
+  document.getElementById('nextCap').textContent = '$' + (DUMMY.nextCapital || DUMMY.capital).toLocaleString();
+  const pRate = Math.round((DUMMY.profitRate||0.8)*100);
+  const lRate = Math.round((DUMMY.lossRate||0.3)*100);
+  document.getElementById('nextCapCalc').textContent = cp >= 0
+    ? `+$${Math.round(cp).toLocaleString()} × ${pRate}%`
+    : `-$${Math.abs(Math.round(cp)).toLocaleString()} × ${lRate}%`;
+
+  document.getElementById('lastRenewal').textContent = DUMMY.lastRenewal || '—';
 
   // 수익 적립금
   const res = DUMMY.profitReserve || 0;
-  document.getElementById('profitReserve').textContent = (res >= 0 ? '+$' : '-$') + Math.abs(res).toLocaleString();
+  document.getElementById('profitReserve').textContent = (res >= 0 ? '+$' : '-$') + Math.abs(Math.round(res)).toLocaleString();
   document.getElementById('reserveRate').textContent =
-    '이익복리율 ' + Math.round((DUMMY.profitRate||0.8)*100) + '% / 적립 ' + Math.round((1-(DUMMY.profitRate||0.8))*100) + '%';
+    '이익복리율 ' + pRate + '% / 적립 ' + (100 - pRate) + '%';
 
-  // 다음 갱신 예상 투자금
-  document.getElementById('nextCap').textContent = '$' + (DUMMY.nextCapital||0).toLocaleString();
-  const ap = DUMMY.addedReserve || 0;
-  document.getElementById('nextCapCalc').textContent = DUMMY.cyclePnl >= 0
-    ? `+$${(DUMMY.cyclePnl||0).toLocaleString()} × ${Math.round((DUMMY.profitRate||0.8)*100)}%`
-    : `-$${Math.abs(DUMMY.cyclePnl||0).toLocaleString()} × ${Math.round((DUMMY.lossRate||0.3)*100)}%`;
+  // 체결내역 렌더
+  renderHistory(DUMMY.history || []);
+
+  // 슬롯 규칙 검증 렌더
+  renderVerify(DUMMY.slots || []);
+}
+
+function renderHistory(history) {
+  const tbody = document.getElementById('historyBody');
+  if (!history.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted2);padding:16px;font-size:10px">체결 내역 없음</td></tr>';
+    return;
+  }
+  tbody.innerHTML = history.slice(0, 20).map(h => {
+    const pnl     = h.pnl || 0;
+    const pnlStr  = (pnl >= 0 ? '+$' : '-$') + Math.abs(Math.round(pnl)).toLocaleString();
+    const pnlCol  = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const sideTag = h.side === 'BUY'
+      ? '<span class="tag tb">매수</span>'
+      : h.side === 'MOC'
+        ? '<span class="tag tm">MOC</span>'
+        : '<span class="tag ts">매도</span>';
+    return `<tr>
+      <td style="font-size:9px;color:var(--muted2)">${(h.date||'').slice(5)}</td>
+      <td style="color:var(--muted2)">${h.slotId||''}</td>
+      <td>${sideTag}</td>
+      <td>$${Number(h.price||0).toFixed(2)}</td>
+      <td>${Number(h.quantity||0).toLocaleString()}</td>
+      <td style="color:${pnlCol};font-weight:500">${pnlStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderVerify(slots) {
+  const tbody = document.getElementById('verifyBody');
+  const holding = slots.filter(s => s.status === 'HOLDING');
+  if (!holding.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted2);padding:16px;font-size:10px">보유 슬롯 없음</td></tr>';
+    return;
+  }
+  tbody.innerHTML = holding.map(s => {
+    const modeTag = s.entryMode === 'SAFE'
+      ? '<span class="tag-safe">SAFE</span>'
+      : '<span class="tag-aggr">AGGR</span>';
+    const sellMult = s.entryMode === 'SAFE' ? '×1.002' : '×1.025';
+    const expire   = s.expireDate ? s.expireDate.slice(5) : '—';
+    const isExpired = s.expireDate && new Date(s.expireDate) <= new Date();
+    const expireStyle = isExpired ? 'color:var(--red)' : 'font-size:9px';
+    const expireText  = isExpired ? expire + ' 만료' : expire;
+    const ok = s.sellTarget && s.entryPrice && s.expireDate ? '✓' : '!';
+    const okClass = ok === '✓' ? 'ok' : 'bad';
+    return `<tr>
+      <td style="color:var(--muted2)">${s.id}</td>
+      <td>$${Number(s.entryPrice||0).toFixed(2)}</td>
+      <td style="color:var(--red)">$${Number(s.sellTarget||0).toFixed(2)}</td>
+      <td>${modeTag}</td>
+      <td style="${expireStyle}">${expireText}</td>
+      <td style="font-size:9px;color:var(--muted2)">${sellMult}</td>
+      <td class="${okClass}">${ok}</td>
+    </tr>`;
+  }).join('');
 }
 
 /* ══ 누적 수익 차트 ══ */
@@ -1147,7 +1159,9 @@ async function loadAndRender() {
     }
 
     // 투자금
-    DUMMY.capital      = gsData.currentCapital || DUMMY.capital;
+    DUMMY.initialCapital = gsData.initialCapital || DUMMY.initialCapital;
+    DUMMY.initialCapital = gsData.initialCapital || DUMMY.initialCapital;
+    DUMMY.capital       = gsData.currentCapital  || DUMMY.capital;
     DUMMY.profitReserve= gsData.profitReserve  || 0;
     DUMMY.cyclePnl     = gsData.cyclePnl       || 0;
     DUMMY.cycleDay     = gsData.cycleTradeDays || 0;
