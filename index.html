@@ -193,6 +193,7 @@ async function saveToSheet() {
       totalInv: Math.round(totalInv * 100) / 100,
       totalVal: Math.round(total * 100) / 100,
       qqqPrice: qqqP,
+      valChange: last ? Math.round((total - last.totalVal) * 100) / 100 : 0,
       ret:      last ? +((( total - actualBuy) / last.totalVal - 1) * 100).toFixed(2) : 0,
       qqqRet:   last ? +((qqqP  / last.qqqPrice - 1) * 100).toFixed(2) : 0,
       retCum:   +((total / totalInv - 1) * 100).toFixed(2),
@@ -1055,14 +1056,19 @@ function renderPerf(total) {
 
   // 테이블
   var tableRows = h.slice().reverse().map(function(s){
-    var rc = s.ret>=0?"#34d399":"#f87171";
-    var qc = s.qqqRet>=0?"#94a3b8":"#f87171";
-    var ac = (s.retCum-s.qqqRetCum)>=0?"#34d399":"#f87171";
+    var vc  = (s.valChange||0)>=0 ? "#34d399" : "#f87171";
+    var rBg = s.ret>=0 ? "background:#0a1f18;border:1px solid #14532d;" : "background:#1a0808;border:1px solid #7f1d1d;";
+    var rc  = s.ret>=0 ? "#34d399" : "#f87171";
+    var qc  = s.qqqRet>=0 ? "#94a3b8" : "#f87171";
+    var ac  = (s.retCum-s.qqqRetCum)>=0 ? "#34d399" : "#f87171";
+    var vcAbs = Math.abs(s.valChange||0);
+    var vcFmt = (s.valChange||0)>=0 ? "+"+fmt(vcAbs) : "-"+fmt(vcAbs);
     return '<tr style="border-bottom:1px solid #0f2d4a20;">'+
       '<td style="padding:6px 8px;color:#64748b;font-size:10px;">'+s.date+'</td>'+
       '<td style="padding:6px 8px;color:#94a3b8;font-size:11px;text-align:right;">'+fmt(s.totalVal)+'</td>'+
       '<td style="padding:6px 8px;color:#64748b;font-size:11px;text-align:right;">'+fmt(s.totalInv)+'</td>'+
-      '<td style="padding:6px 8px;color:'+rc+';font-size:11px;font-weight:700;text-align:right;">'+(s.ret>=0?"+":"")+s.ret.toFixed(1)+'%</td>'+
+      '<td style="padding:6px 8px;color:'+vc+';font-size:11px;font-weight:700;text-align:right;">'+vcFmt+'</td>'+
+      '<td style="padding:6px 8px;text-align:right;"><span style="'+rBg+'color:'+rc+';font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;">'+(s.ret>=0?"+":"")+s.ret.toFixed(1)+'%</span></td>'+
       '<td style="padding:6px 8px;color:'+qc+';font-size:11px;text-align:right;">'+(s.qqqRet>=0?"+":"")+s.qqqRet.toFixed(1)+'%</td>'+
       '<td style="padding:6px 8px;color:'+ac+';font-size:11px;font-weight:700;text-align:right;">'+(s.retCum>=0?"+":"")+s.retCum.toFixed(1)+'%</td>'+
     '</tr>';
@@ -1081,8 +1087,8 @@ function renderPerf(total) {
       '<div style="overflow-x:auto;">',
       '<table style="width:100%;border-collapse:collapse;font-family:monospace;">',
       '<thead><tr>',
-        ['날짜','평가금액','투입원금','주간수익','QQQ주간','누적수익'].map(function(h){
-          return '<th style="padding:6px 8px;color:#475569;font-size:9px;text-align:right;border-bottom:1px solid #1e3a5f;font-weight:600;">'+h+'</th>';
+        ['날짜','평가금액','투입원금','주간변동','주간수익률','QQQ주간','누적수익'].map(function(hh,i){
+          return '<th style="padding:6px 8px;color:#475569;font-size:9px;'+(i===0?'text-align:left':'text-align:right')+';border-bottom:1px solid #1e3a5f;font-weight:600;">'+hh+'</th>';
         }).join(""),
       '</tr></thead>',
       '<tbody>'+tableRows+'</tbody>',
