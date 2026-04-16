@@ -2,18 +2,26 @@
 import yfinance as yf
 import numpy as np
 
+def _col(df, name: str):
+    """멀티컬럼/단일컬럼 모두 대응해서 Series 반환"""
+    col = df[name]
+    if hasattr(col, "squeeze"):
+        col = col.squeeze()
+    return col
+
 def fetch(symbol: str, period: str = "2y") -> list[float]:
-    """종목 일봉 종가 리스트 반환 (최신순 아님, 오래된→최신 순서)"""
+    """종목 일봉 종가 리스트 반환 (오래된→최신 순서)"""
     df = yf.download(symbol, period=period, progress=False, auto_adjust=True)
-    return df["Close"].dropna().tolist()
+    return _col(df, "Close").dropna().tolist()
 
 def fetch_ohlc(symbol: str, period: str = "2y"):
     """OHLC bars 반환 (ATR 계산용)"""
     df = yf.download(symbol, period=period, progress=False, auto_adjust=True)
     df = df.dropna()
-    bars = [{"c": row["Close"], "h": row["High"], "l": row["Low"]}
-            for _, row in df.iterrows()]
-    return bars
+    c = _col(df, "Close").tolist()
+    h = _col(df, "High").tolist()
+    l = _col(df, "Low").tolist()
+    return [{"c": c[i], "h": h[i], "l": l[i]} for i in range(len(c))]
 
 def fetch_price(symbol: str) -> float:
     """현재가"""
