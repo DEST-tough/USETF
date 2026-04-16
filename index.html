@@ -177,19 +177,23 @@ async function saveToSheet() {
   var total = getTotalValue();
   var qqqP  = state.qqqPrice || 0;
   if(total > 0 && qqqP > 0) {
-    var today = new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit"}).replace(/\. /g,"-").replace(".","-").replace(/\.$/, "");
+    var today = new Date().toISOString().slice(0, 10);
     // 같은 날 중복 저장 방지 (마지막 항목 날짜 비교)
     var last = perfHistory[perfHistory.length-1];
-    // 투입원금: 직전 스냅샷 없으면 현재 평가금액, 있으면 직전+실제매수금액
-    var actualBuy = state.lastWeeklyBuy > 0 ? state.lastWeeklyBuy : calcStepDCA(total);
-    var totalInv = last ? (last.totalInv + actualBuy) : total;
+    // 투입원금: 직전 스냅샷 없으면 현재 평가금액, 있으면 직전+실제매수금액-TRIM매도금액
+    var actualBuy  = state.lastWeeklyBuy > 0 ? state.lastWeeklyBuy : calcStepDCA(total);
+    var actualTrim = state.lastWeeklyTrim || 0; // TRIM 매도금액 (재투자분이므로 원금 차감 안함, 순매수분만)
+    // TRIM은 매도 후 재배분이므로 원금 변동 없음. 순 신규 입금분(actualBuy - actualTrim 중 외부 자금)만 원금 증가
+    // 실질 신규 투입 = actualBuy가 외부 DCA 자금. TRIM 재배분은 원금 중립.
+    var newCapital = Math.max(0, actualBuy - actualTrim); // TRIM 재배분 초과분만 신규 원금
+    var totalInv = last ? (last.totalInv + newCapital) : total;
     var baseQqq  = last ? last.qqqPrice : qqqP; // QQQ 기준가 (첫 스냅샷)
     var snap = {
       date:     today,
       totalInv: Math.round(totalInv * 100) / 100,
       totalVal: Math.round(total * 100) / 100,
       qqqPrice: qqqP,
-      ret:      last ? +((total / last.totalVal - 1) * 100).toFixed(2) : 0,
+      ret:      last ? +((( total - actualBuy) / last.totalVal - 1) * 100).toFixed(2) : 0,
       qqqRet:   last ? +((qqqP  / last.qqqPrice - 1) * 100).toFixed(2) : 0,
       retCum:   +((total / totalInv - 1) * 100).toFixed(2),
       qqqRetCum:+((qqqP  / (perfHistory[0]?.qqqPrice||qqqP) - 1) * 100).toFixed(2),
@@ -340,8 +344,15 @@ function fmt(v){
   return "$"+v.toFixed(4);
 }
 function portColor(t){
-  if(PORT1.assets.find(function(a){return a.t===t;})) return "#38bdf8";
-  if(PORT2.assets.find(function(a){return a.t===t;})) return "#fb923c";
+  var inP1 = !!PORT1.assets.find(function(a){return a.t===t;});
+  var inP2 = !!PORT2.assets.find(function(a){return a.t===t;});
+  var inP3 = !!PORT3.assets.find(function(a){return a.t===t;});
+  // 가장 비중이 높은 포트 색상으로 표시
+  var w1 = inP1 ? (PORT1.assets.find(function(a){return a.t===t;}).w) : 0;
+  var w2 = inP2 ? (PORT2.assets.find(function(a){return a.t===t;}).w) : 0;
+  var w3 = inP3 ? (PORT3.assets.find(function(a){return a.t===t;}).w) : 0;
+  if(w1>=w2 && w1>=w3) return "#38bdf8";
+  if(w2>=w3) return "#fb923c";
   return "#c084fc";
 }
 
@@ -780,6 +791,9 @@ function renderAction(rs,cfg,tw,total){
   // ── 실제 매수 예정 합계 저장 (스냅샷 투입원금용) ────────────
   state.lastWeeklyBuy = Math.round(
     rawItems.reduce(function(s,a){ return s + (a.isTrim ? 0 : a.buy); }, 0) * 100
+  ) / 100;
+  state.lastWeeklyTrim = Math.round(
+    rawItems.reduce(function(s,a){ return s + (a.isTrim ? a.trimAmt : 0); }, 0) * 100
   ) / 100;
 
   // ── 3차: 정렬 ────────────────────────────────────────────
