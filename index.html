@@ -177,7 +177,7 @@ async function saveToSheet() {
   var total = getTotalValue();
   var qqqP  = state.qqqPrice || 0;
   if(total > 0 && qqqP > 0) {
-    var today = new Date().toISOString().slice(0, 10);
+    var _d = new Date(); var today = _d.getFullYear()+"-"+String(_d.getMonth()+1).padStart(2,"0")+"-"+String(_d.getDate()).padStart(2,"0");
     // 같은 날 중복 저장 방지 (마지막 항목 날짜 비교)
     var last = perfHistory[perfHistory.length-1];
     // 투입원금: 직전 스냅샷 없으면 현재 평가금액, 있으면 직전+실제매수금액-TRIM매도금액
@@ -194,7 +194,7 @@ async function saveToSheet() {
       totalVal: Math.round(total * 100) / 100,
       qqqPrice: qqqP,
       valChange: last ? Math.round((total - last.totalVal) * 100) / 100 : 0,
-      ret:      last ? +((( total - actualBuy) / last.totalVal - 1) * 100).toFixed(2) : 0,
+      ret:      last ? +(((total - last.totalVal - newCapital) / last.totalVal) * 100).toFixed(2) : 0,
       qqqRet:   last ? +((qqqP  / last.qqqPrice - 1) * 100).toFixed(2) : 0,
       retCum:   +((total / totalInv - 1) * 100).toFixed(2),
       qqqRetCum:+((qqqP  / (perfHistory[0]?.qqqPrice||qqqP) - 1) * 100).toFixed(2),
