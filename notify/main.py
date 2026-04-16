@@ -16,24 +16,23 @@ KST = timezone(timedelta(hours=9))
 def send_telegram(text: str):
     url  = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     resp = requests.post(url, json={
-        "chat_id":    CHAT_ID,
-        "text":       text,
-        "parse_mode": "HTML",
+        "chat_id": CHAT_ID,
+        "text":    text,
     }, timeout=15)
     resp.raise_for_status()
 
 def build_message(results: list[dict], errors: list[str]) -> str:
     now_kst = datetime.now(KST).strftime("%Y-%m-%d %H:%M KST")
 
-    lines = [f"<b>📊 ETF 전략 신호</b>  |  {now_kst}", ""]
+    lines = [f"📊 ETF 전략 신호  |  {now_kst}", ""]
 
     for r in results:
         sig = r["signal"]
         if r.get("is_dca"):
-            header = f"{r['emoji']} <b>{r['name']}</b>  →  {sig}  ({r['weight']}주)"
+            header = f"{r['emoji']} {r['name']}  →  {sig}  ({r['weight']}주)"
         else:
             weight_str = f" ({r['weight']:.0f}%)" if r["weight"] > 0 else ""
-            header = f"{r['emoji']} <b>{r['name']}</b>  →  {sig}{weight_str}"
+            header = f"{r['emoji']} {r['name']}  →  {sig}{weight_str}"
 
         lines.append(header)
         for d in r["detail"]:
@@ -45,7 +44,6 @@ def build_message(results: list[dict], errors: list[str]) -> str:
         for e in errors:
             lines.append(f"⚠️ {e}")
 
-    # 주의 신호 요약
     warn = [r for r in results if r["signal"] in ("STOP", "BEAR", "CASH")]
     if not warn and not errors:
         lines.append("━━━━━━━━━━━━")
@@ -68,7 +66,7 @@ def main():
             print(f"[ERR] {name}: {e}", file=sys.stderr)
 
     if not results and errors:
-        send_telegram(f"⚠️ ETF 알림 전체 실패\n" + "\n".join(errors))
+        send_telegram("⚠️ ETF 알림 전체 실패\n" + "\n".join(errors))
         sys.exit(1)
 
     msg = build_message(results, errors)
