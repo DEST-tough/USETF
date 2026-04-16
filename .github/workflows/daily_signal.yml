@@ -1,0 +1,27 @@
+name: ETF Daily Signal
+
+on:
+  schedule:
+    - cron: '0 2 * * 1-5'   # 평일 02:00 UTC = 한국시간 11:00
+  workflow_dispatch:          # 수동 실행 가능
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 의존성 설치
+        run: pip install yfinance requests
+
+      - name: ETF 신호 계산 및 텔레그램 전송
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+        working-directory: notify
