@@ -363,9 +363,9 @@ var RSI_THRESH = 75;
 // ════════════════════════════════════════════════════════
 async function yahooQuote(symbol) {
   var urls = [
-    "/yahoo?symbol=" + encodeURIComponent(symbol),
+    "/yahoo?symbol=" + encodeURIComponent(symbol) + "&range=2y",
     "https://api.allorigins.win/get?url=" + encodeURIComponent(
-      "https://query1.finance.yahoo.com/v8/finance/chart/" + symbol + "?interval=1d&range=1y"
+      "https://query1.finance.yahoo.com/v8/finance/chart/" + symbol + "?interval=1d&range=2y"
     )
   ];
   var lastErr;
@@ -424,23 +424,46 @@ function calcVolAnn(closes, n) {
   return Math.sqrt(variance) * Math.sqrt(252);
 }
 
-// v8 전략 시뮬레이션 (최근 120일)
+// 롤링 단순이동평균 — 전 인덱스 결과를 한 번에 반환 (O(n))
+function rollingMA(arr, n) {
+  var out = new Array(arr.length).fill(null);
+  if (arr.length < n) return out;
+  var sum = 0;
+  for (var i = 0; i < n; i++) sum += arr[i];
+  out[n - 1] = sum / n;
+  for (var j = n; j < arr.length; j++) {
+    sum += arr[j] - arr[j - n];
+    out[j] = sum / n;
+  }
+  return out;
+}
+
+// v8 전략 시뮬레이션 (전체 가용 기간, 롤링 합으로 O(n))
 function simulateV8(tqqqCloses, qqqCloses) {
   var n = Math.min(tqqqCloses.length, qqqCloses.length);
-  var tqqq = tqqqCloses.slice(-Math.min(n, 240));
-  var qqq  = qqqCloses.slice(-Math.min(n, 240));
+  // 마지막 n개를 정렬해서 사용 (앞쪽 절단 없이 전체 가용 데이터)
+  var tqqq = tqqqCloses.slice(-n);
+  var qqq  = qqqCloses.slice(-n);
+
+  // MA200 / MA20 / QQQ MA200 — 롤링 합 방식
+  var ma200Arr  = rollingMA(tqqq, 200);
+  var ma20Arr   = rollingMA(tqqq, FAST_MA);
+  var qMa200Arr = rollingMA(qqq, 200);
 
   var pos = 0, peak = 0, entry = 0, everExited = false, daysInPos = 0;
 
+  // 200일 워밍업 후부터 시뮬레이션
   for (var i = 200; i < tqqq.length; i++) {
-    var c       = tqqq[i];
-    var ma200   = calcMA(tqqq.slice(0, i+1), 200);
-    var ma20    = calcMA(tqqq.slice(0, i+1), FAST_MA);
-    var rsi     = calcRSI(tqqq.slice(0, i+1), 14);
-    var vol     = calcVolAnn(tqqq.slice(0, i+1), 20);
-    var qqqMa200 = calcMA(qqq.slice(0, i+1), 200);
+    var c        = tqqq[i];
+    var ma200    = ma200Arr[i];
+    var ma20     = ma20Arr[i];
+    var qqqMa200 = qMa200Arr[i];
 
-    if (!ma200 || !ma20 || !rsi || !vol || !qqqMa200) continue;
+    // RSI/Vol은 윈도우가 짧아서 그대로 슬라이스 (성능 영향 미미)
+    var rsi = calcRSI(tqqq.slice(0, i + 1), 14);
+    var vol = calcVolAnn(tqqq.slice(0, i + 1), 20);
+
+    if (ma200 == null || ma20 == null || rsi == null || vol == null || qqqMa200 == null) continue;
 
     var aboveMA200 = c > ma200;
     var qqqOk      = qqq[i] > qqqMa200;
@@ -532,11 +555,14 @@ async function loadSignal() {
     // 이유 생성
     var reasons = [];
     if (signal === 'LONG') {
-      reasons.push('TQQQ MA200 위 ($' + price.toFixed(2) + ' > $' + ma200.toFixed(2) + ')');
-      reasons.push('RSI ' + rsi14.toFixed(1) + ' < ' + RSI_THRESH);
+      reasons.push('TQQQ ' + (aboveMa200 ? '>' : '<') + ' MA200 ($' + price.toFixed(2) + ' vs $' + ma200.toFixed(2) + ')');
+      reasons.push('RSI ' + rsi14.toFixed(1) + ' ' + (rsiOk ? '<' : '>=') + ' ' + RSI_THRESH);
       reasons.push('변동성 ' + (volAnn*100).toFixed(1) + '% 기반 비중 ' + tqqqWeight.toFixed(0) + '%');
       if (sim.daysInPos > 0)
         reasons.push('진입 후 ' + sim.daysInPos + '일째, 고점 $' + trailingPeak.toFixed(2));
+      // LONG 유지 중이지만 현재 진입 필터를 못 맞추는 경우 → 경고
+      if (!rsiOk)      reasons.push('⚠ 현재 RSI 과매수 — 신규 진입 보류 (기존 포지션은 트레일링 스톱 기준 유지)');
+      if (!aboveMa200) reasons.push('⚠ MA200 이탈 — 다음 영업일 청산 신호 발생 가능');
     } else {
       if (!aboveMa200) reasons.push('MA200 아래 ($' + price.toFixed(2) + ' < $' + ma200.toFixed(2) + ')');
       if (!rsiOk)      reasons.push('RSI 과매수 (' + rsi14.toFixed(1) + ' >= ' + RSI_THRESH + ')');
