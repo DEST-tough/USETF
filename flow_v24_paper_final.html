@@ -1029,6 +1029,9 @@ function demoSlotHistory() {
      exitPrice:null,totalPnlPct:null,status:'OPEN'},
   ];
 }
+
+function parseCSV(csv) {
+  if (!csv || !csv.trim()) return [];
   const lines = csv.trim().split('\n').map(l =>
     l.split(',').map(c => c.replace(/^"|"$/g, '').trim())
   );
