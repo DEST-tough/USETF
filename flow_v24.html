@@ -358,62 +358,6 @@ canvas{flex:1;min-height:0;width:100%!important;display:block;}
 </head>
 <body>
 
-<!-- ── TAB 2: TRADE LOG ──────────────── -->
-<div class="tab-pane" id="tab2">
-  <div class="log-page">
-    <div class="log-summary" id="logSummary">
-      <div class="ls-item"><div class="ls-val" id="lsTotalTrades">0</div><div class="ls-lbl">총 거래 수</div></div>
-      <div class="ls-item"><div class="ls-val" id="lsWinRate" style="color:var(--grn)">—</div><div class="ls-lbl">승률</div></div>
-      <div class="ls-item"><div class="ls-val" id="lsAvgProfit" style="color:var(--grn)">—</div><div class="ls-lbl">평균 수익 (청산)</div></div>
-      <div class="ls-item"><div class="ls-val" id="lsTotalPnl">—</div><div class="ls-lbl">실현 손익 합계</div></div>
-      <div class="ls-item"><div class="ls-val" id="lsBuys">0</div><div class="ls-lbl">매수 횟수</div></div>
-      <div class="ls-item"><div class="ls-val" id="lsSells">0</div><div class="ls-lbl">매도 횟수</div></div>
-    </div>
-    <div class="log-toolbar">
-      <span style="font-size:9px;color:var(--dim);letter-spacing:1px;">필터:</span>
-      <button class="log-filter on" onclick="filterLog('ALL',this)">ALL</button>
-      <button class="log-filter" onclick="filterLog('BUY',this)">BUY</button>
-      <button class="log-filter" onclick="filterLog('SELL_T1',this)">T1 익절</button>
-      <button class="log-filter" onclick="filterLog('SELL_T2',this)">T2 익절</button>
-      <button class="log-filter" onclick="filterLog('SELL_TRAIL',this)">트레일</button>
-      <button class="log-filter" onclick="filterLog('SELL_MAXDAYS',this)">만기</button>
-    </div>
-    <div class="log-table-wrap">
-      <table class="log-table">
-        <thead>
-          <tr>
-            <th>날짜</th>
-            <th>액션</th>
-            <th>슬롯</th>
-            <th>모드</th>
-            <th>진입가</th>
-            <th>청산가</th>
-            <th>수량</th>
-            <th>금액</th>
-            <th>손익</th>
-            <th>배수</th>
-            <th>사유</th>
-          </tr>
-        </thead>
-        <tbody id="logTableBody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- ── TAB 3: SLOT HISTORY ───────────── -->
-<div class="tab-pane" id="tab3">
-  <div class="log-page">
-    <div class="log-summary">
-      <div class="ls-item"><div class="ls-val" id="shOpenSlots">0</div><div class="ls-lbl">현재 오픈 슬롯</div></div>
-      <div class="ls-item"><div class="ls-val" id="shTotalSlots">0</div><div class="ls-lbl">누적 슬롯 수</div></div>
-      <div class="ls-item"><div class="ls-val" id="shAvgHold">—</div><div class="ls-lbl">평균 보유일</div></div>
-      <div class="ls-item"><div class="ls-val" id="shBestSlot" style="color:var(--grn)">—</div><div class="ls-lbl">최고 슬롯 수익</div></div>
-      <div class="ls-item"><div class="ls-val" id="shWorstSlot" style="color:var(--red)">—</div><div class="ls-lbl">최저 슬롯 수익</div></div>
-    </div>
-    <div class="hist-grid" id="slotHistGrid"></div>
-  </div>
-</div>
 
 <!-- ── SETUP NOTICE ─────────────────── -->
 <div class="setup-notice" id="setupNotice">
@@ -1033,14 +977,33 @@ function demoSlotHistory() {
 
 function parseCSV(csv) {
   if (!csv || !csv.trim()) return [];
-  const lines = csv.trim().split('\n').map(l =>
-    l.split(',').map(c => c.replace(/^"|"$/g, '').trim())
-  );
+
+  // 구글 시트 CSV 정식 파서 (따옴표 안 쉼표 처리)
+  function parseLine(line) {
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) {
+        result.push(cur.trim()); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+
+  const lines = csv.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0];
-  return lines.slice(1).map(row => {
+  const headers = parseLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = parseLine(line);
     const obj = {};
-    headers.forEach((h, i) => obj[h] = row[i] || '');
+    headers.forEach((h, i) => obj[h] = vals[i] || '');
     return obj;
   });
 }
