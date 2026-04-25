@@ -334,9 +334,10 @@ canvas{flex:1;min-height:0;width:100%!important;display:block;}
 .setup-notice{
   position:fixed;inset:0;z-index:10000;
   background:rgba(245,240,232,.95);
-  display:flex;align-items:center;justify-content:center;
+  display:none;align-items:center;justify-content:center;
   backdrop-filter:blur(4px);
 }
+.setup-notice.visible{display:flex;}
 .setup-box{
   max-width:540px;width:90%;border:1px solid var(--rule);
   background:var(--bg2);padding:32px;
@@ -642,13 +643,13 @@ function saveConfig() {
   CONFIG.webAppUrl = document.getElementById('webAppUrl').value.trim() || null;
   if (!CONFIG.sheetId) { alert('Sheets ID를 입력해 주세요'); return; }
   localStorage.setItem('flowConfig', JSON.stringify(CONFIG));
-  document.getElementById('setupNotice').style.display = 'none';
+  document.getElementById('setupNotice').classList.remove('visible');
   loadAll();
 }
 
 function startDemo() {
   CONFIG.demoMode = true;
-  document.getElementById('setupNotice').style.display = 'none';
+  document.getElementById('setupNotice').classList.remove('visible');
   loadAll();
 }
 
@@ -1608,14 +1609,19 @@ function demoPerfData() {
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
-// 저장된 설정 복원
 const saved = localStorage.getItem('flowConfig');
 if (saved) {
   try {
     CONFIG = JSON.parse(saved);
-    document.getElementById('setupNotice').style.display = 'none';
+    // setup notice는 이미 display:none — 바로 로드
     loadAll();
-  } catch {}
+  } catch {
+    // 파싱 실패 시 setup 표시
+    document.getElementById('setupNotice').classList.add('visible');
+  }
+} else {
+  // 처음 방문 — setup 표시
+  document.getElementById('setupNotice').classList.add('visible');
 }
 
 window.addEventListener('resize', () => {
