@@ -486,15 +486,16 @@ async function yahooQuote(symbol, range) {
         throw new Error('데이터 없음');
       var result = raw.chart.result[0];
       var meta   = result.meta;
+      var ts     = result.timestamp || [];
       var q      = result.indicators.quote[0];
       var closes = q.close.map(function(v){ return v; });
       var highs  = q.high.map(function(v){ return v; });
       var lows   = q.low.map(function(v){ return v; });
-      // null 제거
+      // null 제거 (timestamp 함께 보존)
       var valid = [];
       for (var j = 0; j < closes.length; j++) {
         if (closes[j] != null && highs[j] != null && lows[j] != null)
-          valid.push({ c: closes[j], h: highs[j], l: lows[j] });
+          valid.push({ t: ts[j], c: closes[j], h: highs[j], l: lows[j] });
       }
       return { meta: meta, bars: valid };
     } catch(e) { lastErr = e; }
@@ -510,6 +511,56 @@ function calcMA(arr, n) {
   var sum = 0;
   for (var i = arr.length - n; i < arr.length; i++) sum += arr[i];
   return sum / n;
+}
+
+// 롤링 SMA — 전 인덱스 결과 한 번에 (O(n))
+function rollingMA(arr, n) {
+  var out = new Array(arr.length).fill(null);
+  if (arr.length < n) return out;
+  var sum = 0;
+  for (var i = 0; i < n; i++) sum += arr[i];
+  out[n - 1] = sum / n;
+  for (var j = n; j < arr.length; j++) {
+    sum += arr[j] - arr[j - n];
+    out[j] = sum / n;
+  }
+  return out;
+}
+
+// 롤링 ATR (단순평균, n+1개 필요) — 인덱스별 결과 배열 (O(n))
+function rollingATR(bars, n) {
+  var out = new Array(bars.length).fill(null);
+  if (bars.length < n + 1) return out;
+  var trs = new Array(bars.length).fill(null);
+  for (var i = 1; i < bars.length; i++) {
+    var h = bars[i].h, l = bars[i].l, pc = bars[i-1].c;
+    trs[i] = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+  }
+  var sum = 0;
+  for (var k = 1; k <= n; k++) sum += trs[k];
+  out[n] = sum / n;
+  for (var m = n + 1; m < bars.length; m++) {
+    sum += trs[m] - trs[m - n];
+    out[m] = sum / n;
+  }
+  return out;
+}
+
+// SPY와 VIX를 timestamp 기준으로 inner-join (날짜 정렬 보장)
+function alignByTimestamp(spyBars, vixBars) {
+  var vixMap = Object.create(null);
+  for (var i = 0; i < vixBars.length; i++) {
+    if (vixBars[i].t != null) vixMap[vixBars[i].t] = vixBars[i].c;
+  }
+  var spyOut = [], vixOut = [];
+  for (var j = 0; j < spyBars.length; j++) {
+    var t = spyBars[j].t;
+    if (t != null && vixMap[t] != null) {
+      spyOut.push(spyBars[j]);
+      vixOut.push(vixMap[t]);
+    }
+  }
+  return { spy: spyOut, vix: vixOut };
 }
 
 function calcATR(bars, n) {
@@ -546,23 +597,27 @@ function calcDcaMult(mom1m, mom3m, maDist) {
 }
 
 // ════════════════════════════════════════════════════════
-// 포지션 시뮬레이션 (쿨다운 포함)
-// ════════════════════════════════════════════════════════
+// 포지션 시뮬레이션 (정렬된 SPY/VIX, 롤링 지표)
+// 입력: spyBars(t,c,h,l 정렬됨), vixCloses(같은 인덱스로 정렬됨)
 function simulateFinal(spyBars, vixCloses) {
-  var n = Math.min(spyBars.length, vixCloses.length);
-  var spy  = spyBars.slice(-Math.min(n, 500));
-  var vix  = vixCloses.slice(-Math.min(n, 500));
+  // 데이터 길이는 절단하지 않음 (전체 가용 사용)
+  var spy = spyBars;
+  var vix = vixCloses;
   var spyC = spy.map(function(b){ return b.c; });
 
+  var maArr  = rollingMA(spyC, MA_WIN);
+  var atrArr = rollingATR(spy, ATR_N);
+
   var pos = 0, lastChange = -999, peak = 0, forcedOut = false;
+  var lastStopLine = null;
 
   for (var i = MA_WIN; i < spy.length; i++) {
     var c       = spy[i].c;
-    var ma210   = calcMA(spyC.slice(0, i+1), MA_WIN);
+    var ma210   = maArr[i];
     var vixNow  = vix[i];
-    var atr10   = calcATR(spy.slice(0, i+1), ATR_N);
+    var atr10   = atrArr[i];
 
-    if (!ma210 || !vixNow || !atr10) continue;
+    if (ma210 == null || vixNow == null || atr10 == null) continue;
 
     var aboveMA  = c > ma210;
     var vixSafe  = vixNow < VIX_THRESH;
@@ -572,24 +627,27 @@ function simulateFinal(spyBars, vixCloses) {
     else if (aboveMA || vixSafe)  baseTarget = POS_CAUTION;
     else                          baseTarget = 0.0;
 
-    // 쿨다운 체크
     var canChange = (i - lastChange) >= COOLDOWN;
 
-    // ATR 트레일링 스탑
-    if (pos > 0 || baseTarget > 0) peak = Math.max(peak, c);
+    // ATR 트레일링 스탑 — peak는 항상 c와 비교해 갱신 (forcedOut 중에도 보존)
+    if (peak === 0) peak = c;
+    peak = Math.max(peak, c);
     var stopLine = peak - atr10 * ATR_MULT;
+    lastStopLine = stopLine;
 
     if (!forcedOut) {
       if (pos > 0 && c < stopLine) {
-        forcedOut = true; pos = 0; peak = 0; lastChange = i;
+        forcedOut = true; pos = 0; lastChange = i;
+        // peak는 보존 (복귀 조건이 의미를 가지도록)
       } else if (canChange && baseTarget !== pos) {
         pos = baseTarget; lastChange = i;
       }
     } else {
+      // 복귀: 가격이 stopLine을 충분히 회복하고 신호도 양수일 때
       if (baseTarget > 0 && c > stopLine * 1.02) {
-        forcedOut = false; peak = c;
+        forcedOut = false;
+        peak = c;  // 복귀 시점부터 peak 재시작
       }
-      // 강제 청산 상태에서도 MA/VIX 신호 따름
       if (!forcedOut && canChange && baseTarget !== pos) {
         pos = baseTarget; lastChange = i;
       } else if (forcedOut) {
@@ -598,7 +656,7 @@ function simulateFinal(spyBars, vixCloses) {
     }
   }
 
-  return { pos: pos, peak: peak, forcedOut: forcedOut, lastChange: lastChange };
+  return { pos: pos, peak: peak, forcedOut: forcedOut, lastChange: lastChange, stopLine: lastStopLine };
 }
 
 // ════════════════════════════════════════════════════════
@@ -617,22 +675,29 @@ async function loadSignal() {
 
   try {
     var results = await Promise.all([
-      yahooQuote('UPRO', '1y'),
-      yahooQuote('SPY',  '2y'),
-      yahooQuote('%5EVIX', '2y'),
+      yahooQuote('UPRO',  '1y'),
+      yahooQuote('SPY',   '3y'),
+      yahooQuote('%5EVIX','3y'),
     ]);
 
     var uproBars = results[0].bars;
-    var spyBars  = results[1].bars;
-    var vixBars  = results[2].bars;
+    var spyBarsRaw = results[1].bars;
+    var vixBarsRaw = results[2].bars;
+
+    // SPY와 VIX를 timestamp로 inner-join (날짜 어긋남 방지)
+    var aligned = alignByTimestamp(spyBarsRaw, vixBarsRaw);
+    var spyBars = aligned.spy;
+    var vixC    = aligned.vix;
+
+    if (spyBars.length < MA_WIN + 30) throw new Error('SPY/VIX 정렬 데이터 부족');
 
     var uproC = uproBars.map(function(b){ return b.c; });
     var spyC  = spyBars.map(function(b){ return b.c; });
-    var vixC  = vixBars.map(function(b){ return b.c; });
 
-    // 현재 지표
-    var uproPrice  = results[0].meta.regularMarketPrice || uproC[uproC.length-1];
-    var uproPrev   = uproC[uproC.length-2];
+    // 현재 지표 (UPRO 일변동률은 previousClose 기준)
+    var uproMeta   = results[0].meta;
+    var uproPrice  = uproMeta.regularMarketPrice || uproC[uproC.length-1];
+    var uproPrev   = uproMeta.previousClose || uproC[uproC.length-2];
     var uproPctChg = (uproPrice - uproPrev) / uproPrev * 100;
 
     var spyPrice  = spyC[spyC.length-1];
@@ -647,23 +712,23 @@ async function loadSignal() {
     var maDist200= spyMa200 ? (spyPrice - spyMa200) / spyMa200 : 0;
     var maPct    = maDist * 100;
 
-    // ATR 스탑
-    var recentSpyC = spyC.slice(-ATR_PEAK_WIN);
-    var peak = Math.max.apply(null, recentSpyC);
-    var stopLine   = atr10 ? peak - atr10 * ATR_MULT : null;
-    var atrSafe    = stopLine ? spyPrice > stopLine : true;
-    var ddFromPeak = ((spyPrice - peak) / peak * 100);
-    var bufferPct  = stopLine ? ((spyPrice - stopLine) / spyPrice * 100) : null;
-
     // 모멘텀 DCA
     var mom1m  = spyC.length > 21  ? (spyPrice / spyC[spyC.length-22]  - 1) : 0;
     var mom3m  = spyC.length > 63  ? (spyPrice / spyC[spyC.length-64]  - 1) : 0;
     var dcaMult = calcDcaMult(mom1m, mom3m, maDist200);
 
-    // 시뮬레이션으로 현재 포지션 결정
+    // 시뮬레이션으로 현재 포지션·peak·stopLine 결정 (라이브와 동일 기준)
     var sim = simulateFinal(spyBars, vixC);
     var pos = sim.pos;
     if (sim.forcedOut) pos = 0;
+
+    // 시뮬레이션 결과를 단일 출처로 사용
+    var peak     = sim.peak || spyPrice;
+    var stopLine = sim.stopLine != null ? sim.stopLine
+                   : (atr10 ? peak - atr10 * ATR_MULT : null);
+    var atrSafe    = stopLine != null ? spyPrice > stopLine : true;
+    var ddFromPeak = peak > 0 ? ((spyPrice - peak) / peak * 100) : 0;
+    var bufferPct  = stopLine != null ? ((spyPrice - stopLine) / spyPrice * 100) : null;
 
     // 신호 텍스트
     var signal;
@@ -677,19 +742,29 @@ async function loadSignal() {
 
     // 이유
     var reasons = [];
+    var bufStr = (bufferPct != null) ? bufferPct.toFixed(1) + '%' : '계산 불가';
     if (signal === 'LONG') {
-      reasons.push('SPY MA210 위 ($' + spyPrice.toFixed(2) + ' > $' + spyMa210.toFixed(2) + ')');
-      reasons.push('VIX ' + vixNow.toFixed(1) + ' < ' + VIX_THRESH + ' (안전)');
-      reasons.push('ATR 스탑 안전 (버퍼 ' + (bufferPct ? bufferPct.toFixed(1) : '--') + '%)');
+      reasons.push('SPY ' + (aboveMA ? '>' : '<') + ' MA210 ($' + spyPrice.toFixed(2) + ' vs $' + spyMa210.toFixed(2) + ')');
+      reasons.push('VIX ' + vixNow.toFixed(1) + ' ' + (vixSafe ? '<' : '>=') + ' ' + VIX_THRESH + (vixSafe ? ' (안전)' : ' (위험)'));
+      if (stopLine != null) {
+        reasons.push((atrSafe ? 'ATR 스탑 안전' : '⚠ ATR 스탑 이탈 임박') + ' (버퍼 ' + bufStr + ')');
+      } else {
+        reasons.push('ATR 스탑 계산 불가 (데이터 부족)');
+      }
       reasons.push('DCA 배수 ' + dcaMult.toFixed(2) + 'x (모멘텀 ' + (mom1m*100).toFixed(1) + '%)');
+      // LONG 유지 중이지만 현재 신호가 어긋난 경우 경고
+      if (!aboveMA) reasons.push('⚠ 현재 SPY MA210 이탈 — 다음 영업일 신호 변경 가능');
+      if (!vixSafe) reasons.push('⚠ 현재 VIX 위험 구간 — 다음 영업일 신호 변경 가능');
     } else if (signal === 'CAUTION') {
       if (!aboveMA) reasons.push('SPY MA210 아래 ($' + spyPrice.toFixed(2) + ' < $' + spyMa210.toFixed(2) + ')');
       if (!vixSafe) reasons.push('VIX ' + vixNow.toFixed(1) + ' >= ' + VIX_THRESH + ' (위험)');
       reasons.push('주의 포지션 79% 적용');
-      reasons.push('ATR 스탑 안전 — 추가 하락 시 전량 청산');
+      if (stopLine != null) {
+        reasons.push((atrSafe ? 'ATR 스탑 안전' : '⚠ ATR 스탑 이탈 임박') + ' — 추가 하락 시 전량 청산');
+      }
     } else if (signal === 'STOP') {
-      reasons.push('ATR 트레일링 스탑 발동!');
-      reasons.push('SPY 고점 $' + peak.toFixed(2) + ' → 스탑 $' + (stopLine ? stopLine.toFixed(2) : '--'));
+      reasons.push('ATR 트레일링 스탑 발동');
+      reasons.push('SPY 고점 $' + peak.toFixed(2) + ' → 스탑 $' + (stopLine != null ? stopLine.toFixed(2) : '--'));
       reasons.push('즉시 전량 청산 후 MA/VIX 신호 회복 대기');
     } else {
       if (!aboveMA) reasons.push('SPY MA210 아래 ($' + spyPrice.toFixed(2) + ' < $' + spyMa210.toFixed(2) + ')');
@@ -781,11 +856,11 @@ function updateDashboard(d) {
 
   // ATR 시각화
   set('atrCurrentPrice', '$' + d.spyPrice.toFixed(2));
-  set('atrStopVal', d.stopLine ? '$' + d.stopLine.toFixed(2) : '--');
-  set('atrBuffer', d.bufferPct ? d.bufferPct.toFixed(1) + '%' : '--');
+  set('atrStopVal', d.stopLine != null ? '$' + d.stopLine.toFixed(2) : '--');
+  set('atrBuffer', d.bufferPct != null ? d.bufferPct.toFixed(1) + '%' : '--');
 
   // 트랙 위치 (stopLine / peak 기준으로 0~100% 위치 계산)
-  if (d.stopLine && d.peak) {
+  if (d.stopLine != null && d.peak) {
     var range = d.peak - d.stopLine;
     // 트랙: 왼쪽=스탑라인, 오른쪽=고점
     // 스탑라인은 트랙 20% 위치에 고정
@@ -816,7 +891,7 @@ function updateDashboard(d) {
   // 체크리스트
   setCheck(1, d.aboveMA,  'SPY $' + d.spyPrice.toFixed(2) + ' vs MA210 $' + d.spyMa210.toFixed(2));
   setCheck(2, d.vixSafe,  'VIX ' + d.vixNow.toFixed(1) + ' (기준 22.0)');
-  setCheck(3, d.atrSafe,  '고점 $' + d.peak.toFixed(2) + ' → 스탑 $' + (d.stopLine ? d.stopLine.toFixed(2) : '--'));
+  setCheck(3, d.atrSafe,  '고점 $' + d.peak.toFixed(2) + ' → 스탑 $' + (d.stopLine != null ? d.stopLine.toFixed(2) : '--'));
   setCheckN(4, 'DCA ' + d.dcaMult.toFixed(2) + 'x (기본 적립 × ' + d.dcaMult.toFixed(2) + ')');
   var cdOk = true; // 쿨다운은 시뮬레이션에서 처리됨
   setCheck(5, cdOk, '신호 변경 후 6일 대기 적용 중');
