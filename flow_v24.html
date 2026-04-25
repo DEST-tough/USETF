@@ -484,7 +484,7 @@ canvas{flex:1;min-height:0;width:100%!important;display:block;}
           </div>
           <div class="buy-grid">
             <div class="bi"><div class="biv grn">$1,840</div><div class="bil">투입금액</div></div>
-            <div class="bi"><div class="biv">29.4주</div><div class="bil">예상수량</div></div>
+            <div class="bi"><div class="biv">29주</div><div class="bil">예상수량</div></div>
             <div class="bi"><div class="biv am">×1.20</div><div class="bil">배수</div></div>
             <div class="bi"><div class="biv grn">$64.06</div><div class="bil">1차 목표</div></div>
             <div class="bi"><div class="biv">$67.50</div><div class="bil">2차 목표</div></div>
@@ -681,7 +681,7 @@ function renderTradeLog() {
       <td style="color:var(--${t.mode==='TREND'?'ink':'red'})">${t.mode||'—'}</td>
       <td>$${t.ep?.toFixed(2)||'—'}</td>
       <td>${isBuy ? '—' : '$'+(t.exitPx?.toFixed(2)||'—')}</td>
-      <td>${t.qty?.toFixed(3)||'—'}</td>
+      <td>${t.qty != null ? Math.floor(t.qty)+'주' : '—'}</td>
       <td>$${t.amount?.toFixed(0)||'—'}</td>
       <td>${pnlTxt}</td>
       <td>${t.mult ? '×'+t.mult.toFixed(2) : '—'}</td>
@@ -1243,7 +1243,7 @@ function renderBuy(s) {
     </div>
     <div class="buy-grid">
       <div class="bi"><div class="biv grn">$${sz.toFixed(0)}</div><div class="bil">투입금액</div></div>
-      <div class="bi"><div class="biv">${qty.toFixed(1)}주</div><div class="bil">예상수량</div></div>
+      <div class="bi"><div class="biv">${Math.floor(qty)}주</div><div class="bil">예상수량</div></div>
       <div class="bi"><div class="biv am">×${mult.toFixed(2)}</div><div class="bil">배수</div></div>
       <div class="bi"><div class="biv grn">$${t1.toFixed(2)}</div><div class="bil">1차 목표</div></div>
       <div class="bi"><div class="biv">$${t2.toFixed(2)}</div><div class="bil">2차 목표</div></div>
@@ -1285,7 +1285,7 @@ function renderSlots(s) {
         </div>
         <div class="slot-ep">$${sl.ep.toFixed(2)}</div>
         <div class="slot-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${pnl.toFixed(2)}%
-          &nbsp;→&nbsp;$${(sl.qty*c).toFixed(0)} 평가</div>
+          &nbsp;→&nbsp;$${(sl.qty*c).toFixed(0)} 평가 (${Math.floor(sl.qty)}주)</div>
         <div class="dbar-wrap">
           <div class="dbar-trk"><div class="dbar-fill" style="width:${dp}%"></div></div>
           <div class="dbar-lbl"><span>${sl.age}일 경과</span><span>최대 ${sl.md}일</span></div>
