@@ -15,14 +15,14 @@
   --serif:'Playfair Display',serif; --mono:'IBM Plex Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--mono);}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);}
 
 /* 종이 질감 */
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   mix-blend-mode:multiply;}
 
-html,body{display:flex;flex-direction:column;}
+html,body{display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── TOPBAR ───────────────────────── */
 .topbar{
@@ -75,7 +75,7 @@ html,body{display:flex;flex-direction:column;}
 .tab-pane{display:none;flex:1;min-height:0;overflow:hidden;}
 .tab-pane.active{display:flex;flex-direction:column;flex:1;min-height:0;}
 
-/* ── PAGE LAYOUT ──────────────────── */
+/* ── PAGE LAYOUT — 데스크탑 ─────────── */
 .page-grid{
   flex:1;min-height:0;
   display:grid;
@@ -88,6 +88,69 @@ html,body{display:flex;flex-direction:column;}
 
 .panel{padding:14px 16px;border-bottom:1px solid var(--rule);flex-shrink:0;}
 .panel.grow{flex:1;min-height:0;overflow-y:auto;}
+
+/* ── 모바일 ────────────────────────── */
+@media (max-width: 768px) {
+  html,body{overflow:auto;}
+  .tab-pane.active{overflow-y:auto;height:auto;}
+
+  /* 탑바 간소화 */
+  .topbar{
+    grid-template-columns:1fr 1fr;
+    padding:0 16px;height:44px;
+  }
+  .tc{display:none;}
+  .tr{gap:8px;}
+  .ver{display:none;}
+  .logo{font-size:18px;}
+
+  /* 탭바 */
+  .tabbar{padding:0 16px;}
+  .tab{padding:8px 14px;font-size:10px;letter-spacing:.5px;}
+
+  /* 레이아웃: 3컬럼 → 1컬럼 스크롤 */
+  .page-grid{
+    display:flex;
+    flex-direction:column;
+    height:auto;
+    min-height:auto;
+    overflow:visible;
+  }
+  .col{
+    overflow:visible;
+    height:auto;
+    border-right:none;
+    border-bottom:1px solid var(--rule);
+  }
+  .col:last-child{border-bottom:none;}
+  .panel.grow{
+    min-height:auto;
+    overflow:visible;
+    max-height:none;
+  }
+
+  /* 슬롯 컬럼 */
+  .slots-col{overflow:visible;height:auto;}
+
+  /* 차트 높이 */
+  .chart-wrap{min-height:280px;}
+  canvas{min-height:200px;}
+
+  /* BUY 패널 그리드 */
+  .buy-grid{grid-template-columns:repeat(3,1fr);}
+
+  /* 누적성과 */
+  .perf-page{height:auto;overflow:visible;}
+  .kpi-row{flex-wrap:wrap;}
+  .kpi{min-width:calc(50% - 8px);}
+
+  /* 연도 테이블 스크롤 */
+  .year-section{overflow-x:auto;}
+
+  /* 패널 여백 */
+  .panel{padding:12px 14px;}
+  .slots-col{padding:12px 14px;}
+}
 .panel.grow::-webkit-scrollbar{width:3px;}
 .panel.grow::-webkit-scrollbar-thumb{background:var(--rule);}
 
@@ -614,6 +677,7 @@ function switchTab(idx) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===idx));
   document.querySelectorAll('.tab-pane').forEach((p,i) => p.classList.toggle('active', i===idx));
   if (idx === 1 && DATA.perf.length) renderPerf();
+  window.scrollTo(0, 0);
 }
 
 // ═══════════════════════════════════════════════
