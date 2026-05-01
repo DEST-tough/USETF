@@ -862,6 +862,7 @@
     gap: 32px;
     align-items: center;
     padding: 20px 28px;
+    padding-right: 200px; /* 토글 버튼과 겹치지 않도록 */
     background: linear-gradient(135deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
     border: 1px solid var(--c-border);
     border-radius: 6px;
@@ -928,6 +929,104 @@
     font-size: 12px;
     color: var(--c-green);
     margin-top: 2px;
+  }
+
+  /* Console Operating Mode Card */
+  .c-mode-card {
+    padding: 18px 24px;
+    background: linear-gradient(135deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+  }
+  .c-mode-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .c-mode-active-info {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--c-text-2);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .c-mode-active-info .val {
+    color: var(--c-orange);
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .c-mode-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .c-mode-option {
+    padding: 14px 16px;
+    background: var(--c-bg-elev);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    text-align: left;
+  }
+  .c-mode-option:hover {
+    border-color: var(--c-border-hi);
+    background: var(--c-bg-glow);
+  }
+  .c-mode-option.active {
+    border-color: var(--c-orange);
+    background: linear-gradient(135deg, rgba(255, 157, 74, 0.08), var(--c-bg-elev));
+    box-shadow: 0 0 16px rgba(255, 157, 74, 0.2);
+  }
+  .c-mode-option.active::before {
+    content: '◆';
+    position: absolute;
+    top: 8px; right: 10px;
+    color: var(--c-orange);
+    font-size: 10px;
+  }
+  .c-mode-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--c-text-0);
+    margin-bottom: 4px;
+  }
+  .c-mode-option.active .c-mode-name {
+    color: var(--c-orange);
+  }
+  .c-mode-cap {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-2);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .c-mode-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+  }
+  .c-mode-stat {
+    display: flex;
+    justify-content: space-between;
+  }
+  .c-mode-stat .lbl {
+    color: var(--c-text-dim);
+    letter-spacing: 0.1em;
+  }
+  .c-mode-stat .val {
+    color: var(--c-text-1);
+    font-weight: 600;
+  }
+  .c-mode-option.active .c-mode-stat .val {
+    color: var(--c-text-0);
   }
 
   /* Console Action Card */
@@ -1971,6 +2070,51 @@
         </div>
       </div>
 
+      <!-- Operating Mode Selector -->
+      <div class="c-mode-card">
+        <div class="c-mode-header">
+          <div class="c-section-title">
+            <span class="c-section-num">[00]</span>
+            OPERATING MODE
+          </div>
+          <div class="c-mode-active-info">
+            ACTIVE:<span class="val" id="c-mode-active">CONSERVATIVE</span>
+          </div>
+        </div>
+        <div class="c-mode-options">
+          <button class="c-mode-option active" data-mode="conservative" onclick="setOperatingMode('conservative')">
+            <div class="c-mode-name">Conservative</div>
+            <div class="c-mode-cap">100% CAP · NO MARGIN</div>
+            <div class="c-mode-stats">
+              <div class="c-mode-stat"><span class="lbl">CAGR</span><span class="val">58.9%</span></div>
+              <div class="c-mode-stat"><span class="lbl">MDD</span><span class="val">-48.1%</span></div>
+              <div class="c-mode-stat"><span class="lbl">SHARPE</span><span class="val">1.17</span></div>
+              <div class="c-mode-stat"><span class="lbl">CALMAR</span><span class="val">1.22</span></div>
+            </div>
+          </button>
+          <button class="c-mode-option" data-mode="balanced" onclick="setOperatingMode('balanced')">
+            <div class="c-mode-name">Balanced</div>
+            <div class="c-mode-cap">125% CAP · ~25% MARGIN</div>
+            <div class="c-mode-stats">
+              <div class="c-mode-stat"><span class="lbl">CAGR</span><span class="val">70.5%</span></div>
+              <div class="c-mode-stat"><span class="lbl">MDD</span><span class="val">-54.1%</span></div>
+              <div class="c-mode-stat"><span class="lbl">SHARPE</span><span class="val">1.19</span></div>
+              <div class="c-mode-stat"><span class="lbl">CALMAR</span><span class="val">1.30</span></div>
+            </div>
+          </button>
+          <button class="c-mode-option" data-mode="aggressive" onclick="setOperatingMode('aggressive')">
+            <div class="c-mode-name">Aggressive</div>
+            <div class="c-mode-cap">NO CAP · FULL MARGIN</div>
+            <div class="c-mode-stats">
+              <div class="c-mode-stat"><span class="lbl">CAGR</span><span class="val">75.1%</span></div>
+              <div class="c-mode-stat"><span class="lbl">MDD</span><span class="val">-57.0%</span></div>
+              <div class="c-mode-stat"><span class="lbl">SHARPE</span><span class="val">1.19</span></div>
+              <div class="c-mode-stat"><span class="lbl">CALMAR</span><span class="val">1.32</span></div>
+            </div>
+          </button>
+        </div>
+      </div>
+
       <!-- Action Center -->
       <div class="c-action">
         <div class="c-action-header">
@@ -2305,6 +2449,51 @@
     const REBAL_THRESHOLD = 0.05; // ±5%p
 
     /* --------------------------------------------------------------
+       운영 모드 (마진 사용 정도)
+       conservative: 100% 캡 (마진 0)
+       balanced:     125% 캡 (마진 ~25%)
+       aggressive:   캡 없음 (백테 원본)
+       -------------------------------------------------------------- */
+    const OPERATING_MODES = {
+      conservative: { cap: 1.00, label: 'Conservative' },
+      balanced:     { cap: 1.25, label: 'Balanced' },
+      aggressive:   { cap: null, label: 'Aggressive' },
+    };
+    let currentMode = 'conservative'; // 기본값
+
+    function setOperatingMode(mode) {
+      if (!OPERATING_MODES[mode]) return;
+      currentMode = mode;
+      try { localStorage.setItem('v9_operating_mode', mode); } catch(e) {}
+
+      // UI 갱신
+      document.querySelectorAll('.c-mode-option').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      const activeLabel = document.getElementById('c-mode-active');
+      if (activeLabel) activeLabel.textContent = OPERATING_MODES[mode].label.toUpperCase();
+
+      // 데이터가 이미 로드돼있으면 비중 즉시 재계산
+      if (window._v9LastData) {
+        applyModeAndRender(window._v9LastData);
+      }
+    }
+
+    function applyCap(weight) {
+      const cap = OPERATING_MODES[currentMode].cap;
+      if (cap === null) return weight;
+      return Math.min(weight, cap);
+    }
+
+    // 페이지 로드 시 저장된 모드 복원
+    try {
+      const saved = localStorage.getItem('v9_operating_mode');
+      if (saved && OPERATING_MODES[saved]) {
+        currentMode = saved;
+      }
+    } catch(e) {}
+
+    /* --------------------------------------------------------------
        야후 fetch (멀티 fallback)
        1. /yahoo (Cloudflare Pages Function — 배포 환경에서만)
        2. corsproxy.io (현재 잘 작동하는 CORS 프록시)
@@ -2624,10 +2813,11 @@
           SOXL: { regime: sigSOXL.regime, weight: sigSOXL.weight },
         });
 
-        // UI 바인딩
-        renderAssetCards(data);
-        renderHeader(data);
-        renderConsole(data);
+        // 데이터 캐시 (모드 변경 시 재렌더링 위해)
+        window._v9LastData = data;
+
+        // 모드 적용해서 UI 바인딩
+        applyModeAndRender(data);
 
       } catch (e) {
         console.error('[v9] 로드 실패:', e);
@@ -2641,6 +2831,22 @@
           if (ref) ref.innerHTML = '<span class="lbl">error</span>' + e.message;
         });
       }
+    }
+
+    /* --------------------------------------------------------------
+       모드 적용 + 렌더링
+       원본 신호 비중에 캡 적용한 효과적 비중으로 UI 갱신
+       -------------------------------------------------------------- */
+    function applyModeAndRender(data) {
+      // 원본 신호 비중에 캡 적용
+      data.assets.forEach(a => {
+        a.effectiveWeight = applyCap(a.data.weight);
+      });
+      console.log('[v9] 모드 적용', currentMode, '캡:', OPERATING_MODES[currentMode].cap);
+
+      renderAssetCards(data);
+      renderHeader(data);
+      renderConsole(data);
     }
 
     /* --------------------------------------------------------------
@@ -2681,8 +2887,12 @@
         if (ma50El)  ma50El.className  = 'depth-value ' + ma50Cls;
         if (rocEl)   rocEl.className   = 'depth-value ' + rocCls;
 
-        // 비중
-        const weightPct = Math.round(sig.weight * 100);
+        // 비중 (모드 캡 적용된 effective weight 사용)
+        const rawWeight = sig.weight;
+        const effWeight = asset.effectiveWeight;  // 캡 적용된 값
+        const weightPct = Math.round(effWeight * 100);
+        const wasCapped = rawWeight > effWeight + 0.001;
+
         setText('flow-weight-' + k, weightPct);
         const weightFill = document.getElementById('flow-weight-fill-' + k);
         if (weightFill) {
@@ -2692,7 +2902,7 @@
         }
 
         // 리플렉션 (조건 설명)
-        renderReflection(k, asset);
+        renderReflection(k, asset, wasCapped, rawWeight);
 
         // === Console 모드 ===
         const cSigEl = document.getElementById('c-signal-' + k);
@@ -2703,7 +2913,11 @@
         const cDotEl = document.getElementById('c-signal-dot-' + k);
         if (cDotEl) cDotEl.className = 'c-signal-dot ' + regimeInfo.color;
 
-        setText('c-weight-' + k, weightPct + '%');
+        // 캡됐으면 원본 비중도 표시
+        const weightDisplay = wasCapped 
+          ? weightPct + '% (' + Math.round(rawWeight * 100) + ' capped)'
+          : weightPct + '%';
+        setText('c-weight-' + k, weightDisplay);
         setText('c-price-' + k, fmtPrice(asset.price));
         const cChgEl = document.getElementById('c-chg-' + k);
         if (cChgEl) {
@@ -2725,7 +2939,7 @@
       });
     }
 
-    function renderReflection(k, asset) {
+    function renderReflection(k, asset, wasCapped, rawWeight) {
       const sig = asset.data;
       const el = document.getElementById('flow-reflection-' + k);
       if (!el) return;
@@ -2745,7 +2959,7 @@
           cls = 'reflection gentle';
           body = '<span class="lbl">flow</span>'
                + (asset.params.bv_lev * 100).toFixed(0) + '% × ' + asset.params.gamma.toFixed(2)
-               + ' = ' + Math.round(sig.weight * 100) + '% 비중. 모멘텀 게이트 열림.';
+               + ' = ' + Math.round(rawWeight * 100) + '% 모멘텀 게이트.';
           break;
         case 'MEANREV':
           cls = 'reflection gentle';
@@ -2762,6 +2976,14 @@
           body = '<span class="lbl">flow</span>'
                + 'ROC60 ' + fmtPct(sig.roc60) + '. 기본 흐름으로.';
       }
+
+      // 캡 적용된 경우 표시
+      if (wasCapped) {
+        const cap = OPERATING_MODES[currentMode].cap;
+        body += ' <span style="color:var(--flow-autumn);">[' + Math.round(rawWeight*100) + '% → ' 
+              + Math.round(cap*100) + '% 캡]</span>';
+      }
+
       el.className = cls;
       el.innerHTML = body;
     }
@@ -2854,6 +3076,9 @@
        초기 로드
        -------------------------------------------------------------- */
     document.addEventListener('DOMContentLoaded', () => {
+      // 저장된 운영 모드 UI 반영
+      setOperatingMode(currentMode);
+      // 데이터 로드
       loadV9Data();
       // 5분마다 자동 갱신
       setInterval(loadV9Data, 5 * 60 * 1000);
