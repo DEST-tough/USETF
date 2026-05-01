@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v9 — 결 / Current</title>
+<style>
+  /* ============================================================
+     v9 DUAL MODE
+     ☘ Current (결): 자연 사진 + 시적 분위기
+     ⚡ Console: 트레이더 다크 + 정보 밀도
+     토글로 즉시 전환
+     ============================================================ */
+
+  /* === FLOW MODE 변수 === */
+  :root {
+    --flow-moss:    #8fb09e;
+    --flow-glacier: #a8d8d4;
+    --flow-snow:    #f0f5f3;
+    --flow-leaf:    #6ba888;
+    --flow-autumn:  #c89866;
+    --flow-sunset:  #b86b5e;
+    --flow-usd:     #7ab5c4;
+    --flow-tqqq:    #d4a574;
+    --flow-soxl:    #c4767e;
+    --flow-text-snow: #e8efeb;
+    --flow-text-mist: #b5c4be;
+    --flow-text-fog:  #9caea7;
+    --flow-text-deep: #6d8077;
+
+    /* === CONSOLE MODE 변수 === */
+    --c-bg-deep:    #0a0d12;
+    --c-bg-base:    #0f141a;
+    --c-bg-card:    #161c25;
+    --c-bg-elev:    #1d2532;
+    --c-bg-glow:    #252e3f;
+    --c-border:     #232c3b;
+    --c-border-hi:  #364257;
+    --c-text-0:     #e8edf5;
+    --c-text-1:     #a3afc4;
+    --c-text-2:     #6b7891;
+    --c-text-dim:   #424c61;
+    --c-orange:     #ff9d4a;
+    --c-orange-d:   #e07a1f;
+    --c-green:      #4ade80;
+    --c-red:        #ef4444;
+    --c-blue:       #60a5fa;
+    --c-yellow:     #fbbf24;
+    --c-usd:        #5eb6ff;
+    --c-tqqq:       #ffb84a;
+    --c-soxl:       #ff5e8a;
+
+    --serif: 'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;
+    --sans: 'Inter', 'Pretendard', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body {
+    font-family: var(--sans);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.6s ease;
+  }
+
+  body[data-mode="flow"] {
+    background: #050f15;
+    color: var(--flow-text-snow);
+  }
+  body[data-mode="console"] {
+    background: var(--c-bg-deep);
+    color: var(--c-text-0);
+  }
+
+  /* 모드별 표시 */
+  /* 가시성: display 속성을 건드리지 않고 다른 방법으로 처리.
+     display: flex/grid 등 각 섹션의 자체 레이아웃을 보존하기 위함. */
+  body[data-mode="console"] .flow-only,
+  body[data-mode="flow"] .console-only {
+    display: none !important;
+  }
+
+  /* ============================================================
+     모드 전환 토글 (고정 우상단)
+     ============================================================ */
+  .mode-switch {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 6px;
+    background: rgba(5, 15, 21, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(168, 216, 212, 0.2);
+    border-radius: 100px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  body[data-mode="console"] .mode-switch {
+    background: rgba(15, 20, 26, 0.85);
+    border-color: var(--c-border-hi);
+  }
+  .mode-btn {
+    padding: 10px 22px;
+    background: transparent;
+    border: none;
+    border-radius: 100px;
+    color: var(--flow-text-fog);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  body[data-mode="console"] .mode-btn { color: var(--c-text-2); }
+  .mode-btn:hover { color: var(--flow-text-snow); }
+  body[data-mode="console"] .mode-btn:hover { color: var(--c-text-0); }
+
+  body[data-mode="flow"] .mode-btn[data-mode="flow"] {
+    background: var(--flow-moss);
+    color: #050f15;
+  }
+  body[data-mode="console"] .mode-btn[data-mode="console"] {
+    background: var(--c-orange);
+    color: var(--c-bg-deep);
+  }
+  .mode-btn .icon { font-size: 14px; }
+
+  /* ============================================================
+     ============= FLOW MODE =============
+     ============================================================ */
+
+  .flow-only.scene {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  .scene-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    z-index: 0;
+  }
+  .scene-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .scene-content {
+    position: relative;
+    z-index: 2;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 80px 48px;
+  }
+
+  /* Flow Scene 1 - Summit */
+  .scene-summit {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 48px;
+  }
+  .scene-summit .scene-photo {
+    background-image: url('https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=2000&q=80');
+  }
+  .scene-summit .scene-overlay {
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.5) 0%,
+      rgba(5, 15, 21, 0.3) 40%,
+      rgba(5, 15, 21, 0.6) 80%,
+      rgba(5, 15, 21, 0.95) 100%);
+  }
+  .summit-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 800px;
+  }
+  .mark {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--flow-glacier);
+    letter-spacing: 0.4em;
+    margin-bottom: 32px;
+    opacity: 0.8;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  }
+  .name {
+    font-family: var(--serif);
+    font-size: 140px;
+    font-weight: 200;
+    color: var(--flow-text-snow);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-style: italic;
+    text-shadow: 0 4px 32px rgba(0, 0, 0, 0.6), 0 8px 64px rgba(0, 0, 0, 0.4);
+  }
+  .name .v {
+    font-family: var(--mono);
+    font-size: 0.22em;
+    font-style: normal;
+    color: var(--flow-glacier);
+    vertical-align: super;
+    margin-left: 12px;
+    letter-spacing: 0.2em;
+  }
+  .whisper {
+    font-family: var(--serif);
+    font-size: 28px;
+    color: var(--flow-text-snow);
+    margin-top: 40px;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.5;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  }
+  .breath {
+    margin-top: 64px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.3em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  }
+  .breath .dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--flow-glacier);
+    animation: breathing 4s ease-in-out infinite;
+  }
+  @keyframes breathing {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.6); }
+  }
+
+  /* Flow Scene 2 - Lake */
+  .scene-lake {
+    padding: 100px 48px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+  .scene-lake .scene-photo {
+    background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=2000&q=80');
+  }
+  .scene-lake .scene-overlay {
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.85) 0%,
+      rgba(5, 15, 21, 0.5) 30%,
+      rgba(5, 15, 21, 0.4) 70%,
+      rgba(5, 15, 21, 0.85) 100%);
+  }
+  .current-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 100px;
+    align-items: center;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 80px 56px;
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.55) 0%,
+      rgba(5, 15, 21, 0.75) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(168, 216, 212, 0.2);
+    border-bottom: 1px solid rgba(168, 216, 212, 0.05);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+  }
+  .heritage { display: flex; flex-direction: column; gap: 24px; }
+  .heritage-label {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+  .heritage-value {
+    font-family: var(--serif);
+    font-size: 96px;
+    font-weight: 300;
+    color: var(--flow-text-snow);
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  }
+  .heritage-value .currency {
+    color: var(--flow-text-mist);
+    font-size: 0.4em;
+    margin-right: 12px;
+    vertical-align: super;
+  }
+  .heritage-tides { display: flex; gap: 56px; margin-top: 16px; }
+  .tide { display: flex; flex-direction: column; gap: 6px; }
+  .tide-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+  .tide-value {
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 400;
+    color: var(--flow-text-snow);
+  }
+  .tide-value.rising { color: var(--flow-leaf); }
+
+  .stillness { display: flex; flex-direction: column; gap: 32px; }
+  .stillness-mark {
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--flow-glacier);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+  .stillness-state {
+    font-family: var(--serif);
+    font-size: 72px;
+    font-weight: 300;
+    color: var(--flow-autumn);
+    letter-spacing: -0.01em;
+    line-height: 1;
+    font-style: italic;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  }
+  .stillness-poem {
+    font-family: var(--serif);
+    font-size: 20px;
+    color: var(--flow-text-snow);
+    line-height: 1.7;
+    font-style: italic;
+    font-weight: 300;
+    max-width: 420px;
+  }
+  .stillness-poem em {
+    color: var(--flow-autumn);
+    font-style: normal;
+    font-weight: 400;
+  }
+  .stillness-action {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 36px;
+    background: rgba(143, 176, 158, 0.1);
+    border: 1px solid var(--flow-moss);
+    border-radius: 100px;
+    color: var(--flow-moss);
+    font-family: var(--serif);
+    font-size: 17px;
+    font-style: italic;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    align-self: flex-start;
+    text-decoration: none;
+    backdrop-filter: blur(8px);
+  }
+  .stillness-action:hover { background: var(--flow-moss); color: #050f15; }
+  .stillness-action::after { content: '→'; transition: transform 0.4s ease; }
+  .stillness-action:hover::after { transform: translateX(8px); }
+
+  /* Flow Scene 3 - Rivers */
+  .scene-river {
+    padding: 120px 48px;
+    min-height: 100vh;
+  }
+  .scene-river .scene-photo {
+    background-image: url('https://images.unsplash.com/photo-1762181702079-40f2f9ac56e4?w=2000&q=80');
+  }
+  .scene-river .scene-overlay {
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.85) 0%,
+      rgba(5, 15, 21, 0.65) 30%,
+      rgba(5, 15, 21, 0.65) 70%,
+      rgba(5, 15, 21, 0.9) 100%);
+  }
+
+  .section-mark { text-align: center; margin-bottom: 80px; }
+  .section-mark-line {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--flow-glacier);
+    letter-spacing: 0.4em;
+    margin-bottom: 24px;
+    opacity: 0.85;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  }
+  .section-mark-title {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 300;
+    color: var(--flow-text-snow);
+    font-style: italic;
+    letter-spacing: -0.01em;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  }
+  .section-mark-sub {
+    font-family: var(--serif);
+    font-size: 19px;
+    color: var(--flow-text-mist);
+    margin-top: 18px;
+    font-style: italic;
+    font-weight: 300;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  }
+
+  .rivers {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 36px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .river {
+    position: relative;
+    padding: 52px 36px 44px;
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.7) 0%,
+      rgba(5, 15, 21, 0.85) 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    overflow: hidden;
+    border: 1px solid rgba(168, 216, 212, 0.12);
+    transition: border-color 0.6s ease, transform 0.6s ease;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  }
+  .river:hover {
+    border-color: rgba(168, 216, 212, 0.3);
+    transform: translateY(-4px);
+  }
+  .river::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 20%; right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--flow-glacier), transparent);
+    opacity: 0.5;
+  }
+  .river-name {
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+  .river-symbol {
+    font-family: var(--serif);
+    font-size: 64px;
+    font-weight: 300;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .river-symbol.usd { color: var(--flow-usd); text-shadow: 0 4px 24px rgba(122, 181, 196, 0.4); }
+  .river-symbol.tqqq { color: var(--flow-tqqq); text-shadow: 0 4px 24px rgba(212, 165, 116, 0.4); }
+  .river-symbol.soxl { color: var(--flow-soxl); text-shadow: 0 4px 24px rgba(196, 118, 126, 0.4); }
+  .river-essence {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--flow-text-snow);
+    margin-bottom: 36px;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .stream-state {
+    margin: 32px 0;
+    padding: 24px 0;
+    border-top: 1px solid rgba(168, 216, 212, 0.15);
+    border-bottom: 1px solid rgba(168, 216, 212, 0.15);
+  }
+  .stream-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--flow-text-deep);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .stream-name {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 300;
+    font-style: italic;
+  }
+  .stream-name.momentum { color: var(--flow-leaf); }
+  .stream-name.bearvr { color: var(--flow-sunset); }
+  .stream-name.base { color: var(--flow-text-snow); }
+  .stream-poem {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--flow-text-mist);
+    margin-top: 8px;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .depth-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 36px;
+    margin-top: 28px;
+  }
+  .depth {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(168, 216, 212, 0.08);
+  }
+  .depth:last-child, .depth:nth-last-child(2) { border-bottom: none; }
+  .depth-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--flow-text-deep);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .depth-value {
+    font-family: var(--serif);
+    font-size: 17px;
+    color: var(--flow-text-snow);
+  }
+  .depth-value.up { color: var(--flow-leaf); }
+  .depth-value.down { color: var(--flow-sunset); }
+  .depth-value.warm { color: var(--flow-autumn); }
+  .pulse { margin-top: 36px; text-align: center; }
+  .pulse-label {
+    font-family: var(--serif);
+    font-size: 12px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    font-style: italic;
+  }
+  .pulse-value {
+    font-family: var(--serif);
+    font-size: 80px;
+    font-weight: 300;
+    line-height: 1;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  }
+  .pulse-value .pct { font-size: 0.4em; color: var(--flow-text-mist); margin-left: 4px; }
+  .pulse-value.usd { color: var(--flow-usd); }
+  .pulse-value.tqqq { color: var(--flow-tqqq); }
+  .pulse-value.soxl { color: var(--flow-soxl); }
+  .pulse-bar {
+    margin-top: 22px;
+    position: relative;
+    height: 2px;
+    background: rgba(168, 216, 212, 0.15);
+  }
+  .pulse-bar-fill {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    transition: width 1s ease;
+  }
+  .pulse-bar-fill.usd { background: linear-gradient(90deg, transparent, var(--flow-usd)); }
+  .pulse-bar-fill.tqqq { background: linear-gradient(90deg, transparent, var(--flow-tqqq)); }
+  .pulse-bar-fill.soxl { background: linear-gradient(90deg, transparent, var(--flow-soxl)); }
+  .pulse-marks {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--flow-text-deep);
+  }
+  .reflection {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(168, 216, 212, 0.12);
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--flow-text-mist);
+    line-height: 1.7;
+    font-style: italic;
+    font-weight: 300;
+  }
+  .reflection.gentle { color: var(--flow-moss); }
+  .reflection.warning { color: var(--flow-autumn); }
+  .reflection .lbl {
+    color: var(--flow-text-deep);
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-right: 8px;
+  }
+
+  /* Flow Scene 4 - Ocean */
+  .scene-ocean {
+    padding: 120px 48px;
+    min-height: 100vh;
+  }
+  .scene-ocean .scene-photo {
+    background-image: url('https://images.unsplash.com/photo-1763688506555-c73c1b944080?w=2000&q=80');
+  }
+  .scene-ocean .scene-overlay {
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.8) 0%,
+      rgba(5, 15, 21, 0.55) 30%,
+      rgba(5, 15, 21, 0.55) 70%,
+      rgba(5, 15, 21, 0.85) 100%);
+  }
+  .journey-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 64px;
+    max-width: 1300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .j-stat {
+    padding: 32px 20px;
+    background: rgba(5, 15, 21, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(168, 216, 212, 0.15);
+    border-radius: 4px;
+    text-align: center;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.4s ease, transform 0.4s ease;
+  }
+  .j-stat:hover {
+    border-color: rgba(168, 216, 212, 0.3);
+    transform: translateY(-2px);
+  }
+  .j-stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .j-stat-value {
+    font-family: var(--serif);
+    font-size: 52px;
+    font-weight: 300;
+    color: var(--flow-text-snow);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
+  }
+  .j-stat-value.highlight {
+    color: var(--flow-leaf);
+  }
+  .j-stat-bench {
+    font-family: var(--serif);
+    font-size: 12px;
+    color: var(--flow-text-fog);
+    font-style: italic;
+    font-weight: 300;
+  }
+  .journey-canvas {
+    height: 420px;
+    position: relative;
+    margin: 0 auto;
+    max-width: 1300px;
+    background: rgba(5, 15, 21, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 24px;
+    border: 1px solid rgba(168, 216, 212, 0.12);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Flow Scene 5 - Bay */
+  .scene-bay {
+    padding: 120px 48px;
+    min-height: 100vh;
+  }
+  .scene-bay .scene-photo {
+    background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=2000&q=80');
+  }
+  .scene-bay .scene-overlay {
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.85) 0%,
+      rgba(5, 15, 21, 0.6) 40%,
+      rgba(5, 15, 21, 0.7) 100%);
+  }
+  .passage-stream {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .passage-stream::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(168, 216, 212, 0.35) 10%,
+      rgba(168, 216, 212, 0.35) 90%,
+      transparent 100%);
+  }
+  .passage {
+    position: relative;
+    padding: 32px 0;
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 36px;
+    align-items: center;
+  }
+  .passage-mark {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--flow-moss);
+    margin: 0 auto;
+    box-shadow: 0 0 0 5px #050f15, 0 0 12px rgba(143, 176, 158, 0.4);
+  }
+  .passage-mark.now {
+    background: var(--flow-autumn);
+    box-shadow: 0 0 0 5px #050f15, 0 0 32px rgba(200, 152, 102, 0.8);
+    animation: ember 3s ease-in-out infinite;
+  }
+  @keyframes ember {
+    0%, 100% { box-shadow: 0 0 0 5px #050f15, 0 0 16px rgba(200, 152, 102, 0.5); }
+    50% { box-shadow: 0 0 0 5px #050f15, 0 0 40px rgba(200, 152, 102, 1); }
+  }
+  .passage-left { text-align: right; }
+  .passage-right { text-align: left; }
+  .passage-when {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.2em;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+  .passage-what {
+    font-family: var(--serif);
+    font-size: 21px;
+    color: var(--flow-text-snow);
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.4;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  }
+  .passage-what.now { color: var(--flow-autumn); }
+  .passage-changes {
+    display: inline-flex;
+    gap: 14px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .passage-changes.right { justify-content: flex-end; }
+  .passage-change {
+    color: var(--flow-text-mist);
+    background: rgba(5, 15, 21, 0.5);
+    padding: 4px 8px;
+    backdrop-filter: blur(4px);
+  }
+  .passage-change.up { color: var(--flow-leaf); }
+  .passage-change.down { color: var(--flow-sunset); }
+
+  .closing.flow-only {
+    padding: 140px 48px;
+    text-align: center;
+    position: relative;
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .closing.flow-only .scene-photo {
+    background-image: url('https://images.unsplash.com/photo-1494625927555-6ec4433b1571?w=2000&q=80');
+  }
+  .closing.flow-only .scene-overlay {
+    background: linear-gradient(180deg,
+      rgba(5, 15, 21, 0.85) 0%,
+      rgba(5, 15, 21, 0.7) 50%,
+      rgba(5, 15, 21, 0.95) 100%);
+  }
+  .closing-line {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--flow-text-snow);
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.8;
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  }
+  .closing-stamp {
+    margin-top: 56px;
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--flow-text-mist);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+
+  /* ============================================================
+     ============= CONSOLE MODE =============
+     ============================================================ */
+
+  .console-only.console-root {
+    background: var(--c-bg-deep);
+    min-height: 100vh;
+    padding: 24px 32px 40px;
+  }
+
+  .console-grid-layout {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Console Header */
+  .c-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: center;
+    padding: 20px 28px;
+    background: linear-gradient(135deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+  }
+  .c-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .c-system-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--c-orange);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+  .c-system-label::before { content: '◆ '; }
+  .c-system-title {
+    font-family: var(--sans);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--c-text-0);
+    letter-spacing: -0.01em;
+  }
+  .c-system-title .v {
+    font-family: var(--mono);
+    color: var(--c-text-2);
+    font-weight: 400;
+    margin-left: 6px;
+  }
+  .c-system-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--c-text-2);
+    letter-spacing: 0.1em;
+    margin-top: 6px;
+  }
+  .c-system-sub .dot { color: var(--c-orange); margin: 0 8px; }
+  .c-header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .c-portfolio {
+    text-align: right;
+  }
+  .c-portfolio-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-dim);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+  .c-portfolio-value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--c-text-0);
+    margin-top: 2px;
+    letter-spacing: -0.01em;
+  }
+  .c-portfolio-pct {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--c-green);
+    margin-top: 2px;
+  }
+
+  /* Console Action Card */
+  .c-action {
+    padding: 20px 28px;
+    background: linear-gradient(135deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
+    border: 1px solid var(--c-orange);
+    border-radius: 6px;
+    box-shadow: 0 0 24px rgba(255, 157, 74, 0.15);
+    position: relative;
+  }
+  .c-action-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .c-section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--c-text-1);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .c-section-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--c-text-dim);
+    padding: 2px 7px;
+    border: 1px solid var(--c-border);
+    border-radius: 2px;
+  }
+  .c-action-pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--c-bg-deep);
+    background: var(--c-orange);
+    padding: 5px 12px;
+    border-radius: 100px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .c-action-body {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 32px;
+    align-items: center;
+  }
+  .c-action-trigger {
+    text-align: center;
+  }
+  .c-trigger-value {
+    font-family: var(--mono);
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--c-orange);
+    line-height: 1;
+  }
+  .c-trigger-value .unit { font-size: 0.55em; }
+  .c-trigger-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-2);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .c-trigger-target {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--c-orange);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .c-deviation {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .c-dev-card {
+    padding: 12px 14px;
+    background: var(--c-bg-elev);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    position: relative;
+  }
+  .c-dev-card.action {
+    border-color: var(--c-orange);
+    background: linear-gradient(180deg, rgba(255, 157, 74, 0.1) 0%, var(--c-bg-elev) 100%);
+  }
+  .c-dev-asset {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .c-dev-asset.usd { color: var(--c-usd); }
+  .c-dev-asset.tqqq { color: var(--c-tqqq); }
+  .c-dev-asset.soxl { color: var(--c-soxl); }
+  .c-dev-bar {
+    position: relative;
+    height: 4px;
+    background: var(--c-bg-deep);
+    border-radius: 2px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .c-dev-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%;
+    border-radius: 2px;
+  }
+  .c-dev-fill.action { background: var(--c-orange); }
+  .c-dev-fill.safe { background: var(--c-text-2); opacity: 0.4; }
+  .c-dev-detail {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .c-dev-detail .pct { font-weight: 600; }
+  .c-dev-detail .pct.action { color: var(--c-orange); }
+  .c-dev-detail .pct.neutral { color: var(--c-text-1); }
+  .c-dev-detail .target { color: var(--c-text-2); }
+
+  /* Console Main Grid */
+  .c-main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+  }
+
+  /* Console Asset Cards */
+  .c-assets {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .c-asset {
+    padding: 18px 20px;
+    background: linear-gradient(180deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+  .c-asset::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .c-asset.usd::before { background: var(--c-usd); }
+  .c-asset.tqqq::before { background: var(--c-tqqq); }
+  .c-asset.soxl::before { background: var(--c-soxl); }
+  .c-asset-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .c-asset-symbol {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .c-asset-symbol.usd { color: var(--c-usd); }
+  .c-asset-symbol.tqqq { color: var(--c-tqqq); }
+  .c-asset-symbol.soxl { color: var(--c-soxl); }
+  .c-asset-price {
+    text-align: right;
+  }
+  .c-asset-price-val {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--c-text-0);
+  }
+  .c-asset-price-chg {
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 2px;
+  }
+  .c-asset-price-chg.up { color: var(--c-green); }
+  .c-asset-price-chg.down { color: var(--c-red); }
+  .c-signal {
+    padding: 10px 12px;
+    background: var(--c-bg-elev);
+    border-radius: 4px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .c-signal-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .c-signal-dot.momentum { background: var(--c-green); }
+  .c-signal-dot.bearvr { background: var(--c-red); }
+  .c-signal-dot.base { background: var(--c-text-2); }
+  .c-signal-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    flex: 1;
+  }
+  .c-signal-name.momentum { color: var(--c-green); }
+  .c-signal-name.bearvr { color: var(--c-red); }
+  .c-signal-name.base { color: var(--c-text-1); }
+  .c-signal-weight {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-text-0);
+  }
+  .c-indicators {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    background: var(--c-bg-elev);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .c-ind {
+    padding: 8px 12px;
+    border-right: 1px solid var(--c-border);
+    border-bottom: 1px solid var(--c-border);
+  }
+  .c-ind:nth-child(2n) { border-right: none; }
+  .c-ind:nth-last-child(-n+2) { border-bottom: none; }
+  .c-ind-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .c-ind-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-text-0);
+  }
+  .c-ind-val.up { color: var(--c-green); }
+  .c-ind-val.down { color: var(--c-red); }
+  .c-ind-val.warm { color: var(--c-yellow); }
+  .c-asset-note {
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 2px solid var(--c-border-hi);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--c-text-1);
+    line-height: 1.5;
+  }
+  .c-asset-note.bearvr { border-left-color: var(--c-red); }
+
+  /* Console Metrics */
+  .c-metrics {
+    background: linear-gradient(135deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .c-metric-cells {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .c-mc {
+    padding: 14px 12px;
+    background: var(--c-bg-elev);
+    border: 1px solid transparent;
+    border-radius: 4px;
+  }
+  .c-mc-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .c-mc-val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .c-mc-val.pos { color: var(--c-green); }
+  .c-mc-val.neg { color: var(--c-red); }
+  .c-mc-val.neutral { color: var(--c-text-0); }
+  .c-mc-bench {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--c-border);
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-2);
+    display: flex;
+    justify-content: space-between;
+  }
+  .c-mc-bench .delta { color: var(--c-green); font-weight: 600; }
+
+  /* Console Lower Grid */
+  .c-lower-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+  }
+  .c-equity {
+    background: linear-gradient(135deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .c-equity-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--c-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .c-equity-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--c-border);
+    gap: 16px;
+  }
+  .c-eq-stat-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .c-eq-stat-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .c-eq-stat-val.pos { color: var(--c-green); }
+  .c-eq-stat-val.delta { color: var(--c-orange); }
+  .c-equity-chart {
+    height: 240px;
+    padding: 16px;
+  }
+
+  .c-timeline {
+    background: linear-gradient(135deg, var(--c-bg-card) 0%, var(--c-bg-base) 100%);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .c-tl-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .c-tl-list {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .c-tl-list::-webkit-scrollbar { width: 4px; }
+  .c-tl-list::-webkit-scrollbar-thumb { background: var(--c-border); }
+  .c-tl-item {
+    position: relative;
+    padding: 12px 20px 12px 38px;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .c-tl-item:last-child { border-bottom: none; }
+  .c-tl-item::before {
+    content: '';
+    position: absolute;
+    left: 18px; top: 18px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--c-text-dim);
+    box-shadow: 0 0 0 3px var(--c-bg-card);
+  }
+  .c-tl-item.pending::before {
+    background: var(--c-orange);
+    box-shadow: 0 0 0 3px var(--c-bg-card), 0 0 12px var(--c-orange);
+    animation: pulse-tl 2s ease-in-out infinite;
+  }
+  @keyframes pulse-tl {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  .c-tl-when {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--c-text-dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+  .c-tl-what {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--c-text-1);
+    margin-bottom: 6px;
+  }
+  .c-tl-what.action {
+    color: var(--c-orange);
+    font-weight: 600;
+  }
+  .c-tl-changes {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .c-tl-change {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    background: var(--c-bg-elev);
+    border-radius: 2px;
+  }
+  .c-tl-change.up { color: var(--c-green); border: 1px solid rgba(74, 222, 128, 0.2); }
+  .c-tl-change.down { color: var(--c-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+  /* Console Status Bar */
+  .c-status {
+    margin-top: 4px;
+    padding: 12px 24px;
+    background: var(--c-bg-card);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--c-text-2);
+    letter-spacing: 0.15em;
+  }
+  .c-status .left { display: flex; gap: 24px; }
+  .c-status .item .lbl { color: var(--c-text-dim); margin-right: 8px; }
+  .c-status .item .val.ok { color: var(--c-green); }
+
+  /* ============================================================
+     반응형
+     ============================================================ */
+  @media (max-width: 1100px) {
+    .scene-summit, .scene-lake, .scene-river, .scene-ocean, .scene-bay, .closing.flow-only {
+      padding-left: 24px; padding-right: 24px;
+    }
+    .scene-photo { background-attachment: scroll; }
+    .name { font-size: 80px; }
+    .heritage-value { font-size: 64px; }
+    .stillness-state { font-size: 48px; }
+    .section-mark-title { font-size: 40px; }
+    .current-grid { grid-template-columns: 1fr; gap: 56px; padding: 56px 32px; }
+    .rivers { grid-template-columns: 1fr; }
+    .journey-stats { grid-template-columns: 1fr 1fr; gap: 40px; }
+    .j-stat-value { font-size: 48px; }
+    .passage { grid-template-columns: 1fr; text-align: center; gap: 16px; }
+    .passage-left, .passage-right { text-align: center; }
+    .passage-stream::before { display: none; }
+    .c-action-body, .c-main-grid, .c-lower-grid, .c-assets, .c-deviation { grid-template-columns: 1fr; }
+    .console-only.console-root { padding: 16px; }
+    .mode-switch { top: 12px; right: 12px; }
+    .mode-btn { padding: 8px 14px; font-size: 10px; }
+  }
+</style>
+</head>
+<body data-mode="flow">
+
+  <!-- ============================================================
+       모드 전환 토글
+       ============================================================ -->
+  <div class="mode-switch">
+    <button class="mode-btn" data-mode="flow" onclick="setMode('flow')">
+      <span class="icon">☘</span>
+      <span>Current</span>
+    </button>
+    <button class="mode-btn" data-mode="console" onclick="setMode('console')">
+      <span class="icon">⚡</span>
+      <span>Console</span>
+    </button>
+  </div>
+
+
+  <!-- ============================================================
+       ============= FLOW MODE =============
+       ============================================================ -->
+
+  <!-- Scene 1: Summit -->
+  <section class="flow-only scene scene-summit">
+    <div class="scene-photo"></div>
+    <div class="scene-overlay"></div>
+    <div class="summit-content">
+      <div class="mark">— A LONG QUIET CURRENT —</div>
+      <h1 class="name">결<span class="v">v9</span></h1>
+      <p class="whisper">
+        대자연의 흐름에 몸을 맡기되,<br>
+        가끔 한 번씩 방향만 살짝 틀어주는 길.
+      </p>
+      <div class="breath">
+        <span class="dot"></span>
+        <span>USD · TQQQ · SOXL</span>
+        <span class="dot"></span>
+        <span>16 YEARS</span>
+        <span class="dot"></span>
+        <span>FLOWING</span>
+        <span class="dot"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scene 2: Lake -->
+  <section class="flow-only scene scene-lake">
+    <div class="scene-photo"></div>
+    <div class="scene-overlay"></div>
+    <div class="current-grid">
+      <div class="heritage">
+        <div class="heritage-label">— present current —</div>
+        <div class="heritage-value">
+          <span class="currency">$</span>13,847
+        </div>
+        <div class="heritage-tides">
+          <div class="tide">
+            <span class="tide-label">today</span>
+            <span class="tide-value rising">+1.34%</span>
+          </div>
+          <div class="tide">
+            <span class="tide-label">this year</span>
+            <span class="tide-value rising">+47.2%</span>
+          </div>
+          <div class="tide">
+            <span class="tide-label">since 2011</span>
+            <span class="tide-value rising">+1284%</span>
+          </div>
+        </div>
+      </div>
+      <div class="stillness">
+        <div class="stillness-mark">— the river speaks —</div>
+        <div class="stillness-state" id="stillness-state">데이터 수신 중…</div>
+        <p class="stillness-poem" id="stillness-poem">
+          잠시 흐름을 읽고 있다.
+        </p>
+        <a href="#" class="stillness-action" id="stillness-action" style="display:none;">방향 다시 잡기</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scene 3: Rivers -->
+  <section class="flow-only scene scene-river">
+    <div class="scene-photo"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="section-mark">
+        <div class="section-mark-line">— THREE RIVERS —</div>
+        <div class="section-mark-title">세 갈래의 흐름</div>
+        <div class="section-mark-sub">각자의 길을 가되, 함께 바다로 향하는</div>
+      </div>
+      <div class="rivers">
+        <!-- USD -->
+        <div class="river">
+          <div class="river-name">— ROOTED CURRENT —</div>
+          <div class="river-symbol usd">USD</div>
+          <div class="river-essence">반도체의 묵직한 2배 흐름.<br>Dow Jones Semiconductors.</div>
+          <div class="stream-state">
+            <div class="stream-label">flow state</div>
+            <div class="stream-name momentum" id="flow-signal-usd">—</div>
+            <div class="stream-poem" id="flow-poem-usd">데이터 수신 중…</div>
+          </div>
+          <div class="depth-grid">
+            <div class="depth"><span class="depth-label">vs ma200</span><span class="depth-value" id="flow-ma200-usd">—</span></div>
+            <div class="depth"><span class="depth-label">vs ma50</span><span class="depth-value" id="flow-ma50-usd">—</span></div>
+            <div class="depth"><span class="depth-label">roc60</span><span class="depth-value" id="flow-roc60-usd">—</span></div>
+            <div class="depth"><span class="depth-label">rsi14</span><span class="depth-value" id="flow-rsi14-usd">—</span></div>
+            <div class="depth"><span class="depth-label">price</span><span class="depth-value" id="flow-price-usd">—</span></div>
+            <div class="depth"><span class="depth-label">vix</span><span class="depth-value" id="flow-vix-usd">—</span></div>
+          </div>
+          <div class="pulse">
+            <div class="pulse-label">— current weight —</div>
+            <div class="pulse-value usd"><span id="flow-weight-usd">—</span><span class="pct">%</span></div>
+            <div class="pulse-bar"><div class="pulse-bar-fill usd" id="flow-weight-fill-usd" style="width: 0%;"></div></div>
+            <div class="pulse-marks"><span>0</span><span>100</span><span>225</span></div>
+          </div>
+          <div class="reflection" id="flow-reflection-usd">
+            <span class="lbl">flow</span>
+            데이터 수신 중…
+          </div>
+        </div>
+        <!-- TQQQ -->
+        <div class="river">
+          <div class="river-name">— GREAT RIVER —</div>
+          <div class="river-symbol tqqq">TQQQ</div>
+          <div class="river-essence">나스닥의 넓은 3배 강.<br>Nasdaq-100.</div>
+          <div class="stream-state">
+            <div class="stream-label">flow state</div>
+            <div class="stream-name base" id="flow-signal-tqqq">—</div>
+            <div class="stream-poem" id="flow-poem-tqqq">데이터 수신 중…</div>
+          </div>
+          <div class="depth-grid">
+            <div class="depth"><span class="depth-label">vs ma200</span><span class="depth-value" id="flow-ma200-tqqq">—</span></div>
+            <div class="depth"><span class="depth-label">vs ma50</span><span class="depth-value" id="flow-ma50-tqqq">—</span></div>
+            <div class="depth"><span class="depth-label">roc60</span><span class="depth-value" id="flow-roc60-tqqq">—</span></div>
+            <div class="depth"><span class="depth-label">rsi14</span><span class="depth-value" id="flow-rsi14-tqqq">—</span></div>
+            <div class="depth"><span class="depth-label">price</span><span class="depth-value" id="flow-price-tqqq">—</span></div>
+            <div class="depth"><span class="depth-label">vix</span><span class="depth-value" id="flow-vix-tqqq">—</span></div>
+          </div>
+          <div class="pulse">
+            <div class="pulse-label">— current weight —</div>
+            <div class="pulse-value tqqq"><span id="flow-weight-tqqq">—</span><span class="pct">%</span></div>
+            <div class="pulse-bar"><div class="pulse-bar-fill tqqq" id="flow-weight-fill-tqqq" style="width: 0%;"></div></div>
+            <div class="pulse-marks"><span>0</span><span>100</span><span>225</span></div>
+          </div>
+          <div class="reflection" id="flow-reflection-tqqq">
+            <span class="lbl">flow</span>
+            데이터 수신 중…
+          </div>
+        </div>
+        <!-- SOXL -->
+        <div class="river">
+          <div class="river-name">— SWIFT CURRENT —</div>
+          <div class="river-symbol soxl">SOXL</div>
+          <div class="river-essence">반도체의 격렬한 3배 결.<br>PHLX Semiconductor.</div>
+          <div class="stream-state">
+            <div class="stream-label">flow state</div>
+            <div class="stream-name bearvr" id="flow-signal-soxl">—</div>
+            <div class="stream-poem" id="flow-poem-soxl">데이터 수신 중…</div>
+          </div>
+          <div class="depth-grid">
+            <div class="depth"><span class="depth-label">vs ma200</span><span class="depth-value" id="flow-ma200-soxl">—</span></div>
+            <div class="depth"><span class="depth-label">vs ma50</span><span class="depth-value" id="flow-ma50-soxl">—</span></div>
+            <div class="depth"><span class="depth-label">roc60</span><span class="depth-value" id="flow-roc60-soxl">—</span></div>
+            <div class="depth"><span class="depth-label">rsi14</span><span class="depth-value" id="flow-rsi14-soxl">—</span></div>
+            <div class="depth"><span class="depth-label">price</span><span class="depth-value" id="flow-price-soxl">—</span></div>
+            <div class="depth"><span class="depth-label">vix peak</span><span class="depth-value" id="flow-vix-soxl">—</span></div>
+          </div>
+          <div class="pulse">
+            <div class="pulse-label">— current weight —</div>
+            <div class="pulse-value soxl"><span id="flow-weight-soxl">—</span><span class="pct">%</span></div>
+            <div class="pulse-bar"><div class="pulse-bar-fill soxl" id="flow-weight-fill-soxl" style="width: 0%;"></div></div>
+            <div class="pulse-marks"><span>0</span><span>100</span><span>225</span></div>
+          </div>
+          <div class="reflection" id="flow-reflection-soxl">
+            <span class="lbl">flow</span>
+            데이터 수신 중…
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scene 4: Ocean -->
+  <section class="flow-only scene scene-ocean">
+    <div class="scene-photo"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="section-mark">
+        <div class="section-mark-line">— SIXTEEN YEARS —</div>
+        <div class="section-mark-title">지나온 길</div>
+        <div class="section-mark-sub">매일의 작은 흐름이 모여 만든 강</div>
+      </div>
+      <div class="journey-stats">
+        <div class="j-stat">
+          <div class="j-stat-label">cagr</div>
+          <div class="j-stat-value highlight">74.9%</div>
+          <div class="j-stat-bench">vs Buy & Hold 25.4%</div>
+        </div>
+        <div class="j-stat">
+          <div class="j-stat-label">calmar</div>
+          <div class="j-stat-value highlight">1.31</div>
+          <div class="j-stat-bench">vs Buy & Hold 0.30</div>
+        </div>
+        <div class="j-stat">
+          <div class="j-stat-label">deepest valley</div>
+          <div class="j-stat-value">−57%</div>
+          <div class="j-stat-bench">vs Buy & Hold −84%</div>
+        </div>
+        <div class="j-stat">
+          <div class="j-stat-label">sharpe</div>
+          <div class="j-stat-value">1.19</div>
+          <div class="j-stat-bench">vs Buy & Hold 0.51</div>
+        </div>
+      </div>
+      <div class="journey-canvas">
+        <svg viewBox="0 0 1200 360" preserveAspectRatio="none" style="width:100%;height:100%;">
+          <defs>
+            <linearGradient id="riverFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6ba888" stop-opacity="0.4"/>
+              <stop offset="50%" stop-color="#6ba888" stop-opacity="0.2"/>
+              <stop offset="100%" stop-color="#6ba888" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="riverLine" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#a8d8d4"/>
+              <stop offset="100%" stop-color="#6ba888"/>
+            </linearGradient>
+            <filter id="softGlow">
+              <feGaussianBlur stdDeviation="2.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <line x1="0" y1="90" x2="1200" y2="90" stroke="rgba(168,216,212,0.1)" stroke-width="0.5"/>
+          <line x1="0" y1="180" x2="1200" y2="180" stroke="rgba(168,216,212,0.1)" stroke-width="0.5"/>
+          <line x1="0" y1="270" x2="1200" y2="270" stroke="rgba(168,216,212,0.1)" stroke-width="0.5"/>
+          <path d="M 0 320 Q 120 312 180 305 T 300 285 T 420 260 T 540 230 T 660 250 T 780 175 T 900 130 T 1050 155 T 1170 130 L 1200 125" fill="none" stroke="#9caea7" stroke-width="1.2" opacity="0.45" stroke-dasharray="3,4"/>
+          <path d="M 0 322 Q 90 318 150 308 T 270 270 T 390 220 T 510 160 T 630 175 T 760 105 T 870 50 T 990 70 T 1110 28 L 1200 12 L 1200 360 L 0 360 Z" fill="url(#riverFill)"/>
+          <path d="M 0 322 Q 90 318 150 308 T 270 270 T 390 220 T 510 160 T 630 175 T 760 105 T 870 50 T 990 70 T 1110 28 L 1200 12" fill="none" stroke="url(#riverLine)" stroke-width="3" filter="url(#softGlow)" stroke-linecap="round"/>
+          <circle cx="1200" cy="12" r="6" fill="#a8d8d4" filter="url(#softGlow)"/>
+          <circle cx="1200" cy="12" r="2.5" fill="#f0f5f3"/>
+          <text x="0" y="354" fill="#6d8077" font-family="JetBrains Mono" font-size="11">2011</text>
+          <text x="300" y="354" fill="#6d8077" font-family="JetBrains Mono" font-size="11">2015</text>
+          <text x="600" y="354" fill="#6d8077" font-family="JetBrains Mono" font-size="11">2019</text>
+          <text x="900" y="354" fill="#6d8077" font-family="JetBrains Mono" font-size="11">2023</text>
+          <text x="1175" y="354" fill="#6d8077" font-family="JetBrains Mono" font-size="11" text-anchor="end">2026</text>
+          <text x="1190" y="32" fill="#a8d8d4" font-family="Cormorant Garamond, serif" font-size="22" font-style="italic" text-anchor="end">v9 · 13.8x</text>
+          <text x="1190" y="120" fill="#9caea7" font-family="Cormorant Garamond, serif" font-size="14" font-style="italic" text-anchor="end" opacity="0.8">buy &amp; hold · 3.85x</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scene 5: Bay -->
+  <section class="flow-only scene scene-bay">
+    <div class="scene-photo"></div>
+    <div class="scene-overlay"></div>
+    <div class="scene-content">
+      <div class="section-mark">
+        <div class="section-mark-line">— GENTLE TURNS —</div>
+        <div class="section-mark-title">방향을 틀었던 순간들</div>
+        <div class="section-mark-sub">한 해에 다섯 번, 그 외엔 흐름에 맡긴다</div>
+      </div>
+      <div class="passage-stream">
+        <div class="passage">
+          <div class="passage-left">
+            <div class="passage-when">2026.05.01 — 지금</div>
+            <div class="passage-what now">TQQQ가 한쪽으로 기울었다</div>
+            <div class="passage-changes right">
+              <span class="passage-change down">tqqq −5.8</span>
+              <span class="passage-change up">usd +2.3</span>
+              <span class="passage-change up">soxl +3.5</span>
+            </div>
+          </div>
+          <div class="passage-mark now"></div>
+          <div class="passage-right"></div>
+        </div>
+        <div class="passage">
+          <div class="passage-left"></div>
+          <div class="passage-mark"></div>
+          <div class="passage-right">
+            <div class="passage-when">2026.03.22</div>
+            <div class="passage-what">SOXL이 너무 깊게 가라앉았다</div>
+            <div class="passage-changes">
+              <span class="passage-change up">soxl +5.1</span>
+              <span class="passage-change down">tqqq −2.8</span>
+              <span class="passage-change down">usd −2.3</span>
+            </div>
+          </div>
+        </div>
+        <div class="passage">
+          <div class="passage-left">
+            <div class="passage-when">2026.02.15</div>
+            <div class="passage-what">TQQQ가 너무 멀리 갔다</div>
+            <div class="passage-changes right">
+              <span class="passage-change down">tqqq −5.3</span>
+              <span class="passage-change up">usd +3.1</span>
+              <span class="passage-change up">soxl +2.2</span>
+            </div>
+          </div>
+          <div class="passage-mark"></div>
+          <div class="passage-right"></div>
+        </div>
+        <div class="passage">
+          <div class="passage-left"></div>
+          <div class="passage-mark"></div>
+          <div class="passage-right">
+            <div class="passage-when">2026.01.04</div>
+            <div class="passage-what">USD가 한쪽 편으로</div>
+            <div class="passage-changes">
+              <span class="passage-change down">usd −5.2</span>
+              <span class="passage-change up">tqqq +2.8</span>
+              <span class="passage-change up">soxl +2.4</span>
+            </div>
+          </div>
+        </div>
+        <div class="passage">
+          <div class="passage-left">
+            <div class="passage-when">2025.12.08</div>
+            <div class="passage-what">SOXL이 거세게 일어섰다</div>
+            <div class="passage-changes right">
+              <span class="passage-change down">soxl −6.4</span>
+              <span class="passage-change up">usd +3.5</span>
+              <span class="passage-change up">tqqq +2.9</span>
+            </div>
+          </div>
+          <div class="passage-mark"></div>
+          <div class="passage-right"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Closing -->
+  <section class="flow-only scene closing">
+    <div class="scene-photo"></div>
+    <div class="scene-overlay"></div>
+    <p class="closing-line">
+      길은 강이 만들지 않고,<br>
+      강이 흐르는 동안 천천히 드러난다.
+    </p>
+    <div class="closing-stamp">
+      <span>v9 · ±5%P</span>
+      <span>·</span>
+      <span>2026.05.01</span>
+      <span>·</span>
+      <span>WALK FORWARD VERIFIED</span>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       ============= CONSOLE MODE =============
+       ============================================================ -->
+  <div class="console-only console-root">
+    <div class="console-grid-layout">
+
+      <!-- Header -->
+      <div class="c-header">
+        <div class="c-header-left">
+          <div class="c-system-label">CLASSIFIED // OPERATIONAL</div>
+          <div class="c-system-title">v9 Multi-Alpha Engine<span class="v">[v9-thr5]</span></div>
+          <div class="c-system-sub">
+            USD · TQQQ · SOXL
+            <span class="dot">◆</span>
+            ±5.00%P THRESHOLD
+            <span class="dot">◆</span>
+            WALK FORWARD VERIFIED
+          </div>
+        </div>
+        <div class="c-header-right">
+          <div class="c-portfolio">
+            <div class="c-portfolio-label">PORTFOLIO</div>
+            <div class="c-portfolio-value">$13,847.23</div>
+            <div class="c-portfolio-pct">+1.34% TODAY · +47.2% YTD</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Center -->
+      <div class="c-action">
+        <div class="c-action-header">
+          <div class="c-section-title">
+            <span class="c-section-num">[01]</span>
+            REBALANCE COMMAND CENTER
+          </div>
+          <span class="c-action-pill">⚠ ACTION REQUIRED</span>
+        </div>
+        <div class="c-action-body">
+          <div class="c-action-trigger">
+            <div class="c-trigger-value">+5.8<span class="unit">%P</span></div>
+            <div class="c-trigger-label">TQQQ DEVIATION</div>
+            <div class="c-trigger-target">EXCEEDED ±5.00%P · 3 DAYS</div>
+          </div>
+          <div class="c-deviation">
+            <div class="c-dev-card">
+              <div class="c-dev-asset usd">USD</div>
+              <div class="c-dev-bar">
+                <div class="c-dev-fill safe" style="left: 38%; width: 12%;"></div>
+              </div>
+              <div class="c-dev-detail">
+                <span class="pct neutral">−2.3%P</span>
+                <span class="target">37.7→40.0</span>
+              </div>
+            </div>
+            <div class="c-dev-card action">
+              <div class="c-dev-asset tqqq">TQQQ</div>
+              <div class="c-dev-bar">
+                <div class="c-dev-fill action" style="left: 50%; width: 29%;"></div>
+              </div>
+              <div class="c-dev-detail">
+                <span class="pct action">+5.8%P</span>
+                <span class="target">40.8→35.0</span>
+              </div>
+            </div>
+            <div class="c-dev-card">
+              <div class="c-dev-asset soxl">SOXL</div>
+              <div class="c-dev-bar">
+                <div class="c-dev-fill safe" style="left: 32%; width: 18%;"></div>
+              </div>
+              <div class="c-dev-detail">
+                <span class="pct neutral">−3.5%P</span>
+                <span class="target">21.5→25.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Grid -->
+      <div class="c-main-grid">
+        <!-- Asset Cards -->
+        <div class="c-assets">
+          <div class="c-asset usd">
+            <div class="c-asset-head">
+              <div>
+                <div class="c-asset-symbol usd">USD</div>
+                <div style="font-family: var(--mono); font-size: 9px; color: var(--c-text-2); letter-spacing: 0.15em; margin-top: 4px;">DJ SEMI 2X</div>
+              </div>
+              <div class="c-asset-price">
+                <div class="c-asset-price-val" id="c-price-usd">—</div>
+                <div class="c-asset-price-chg" id="c-chg-usd">—</div>
+              </div>
+            </div>
+            <div class="c-signal">
+              <div class="c-signal-dot" id="c-signal-dot-usd"></div>
+              <div class="c-signal-name" id="c-signal-usd">—</div>
+              <div class="c-signal-weight"><span id="c-weight-usd">—</span></div>
+            </div>
+            <div class="c-indicators">
+              <div class="c-ind"><div class="c-ind-label">vs MA200</div><div class="c-ind-val" id="c-ma200-usd">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">ROC60</div><div class="c-ind-val" id="c-roc60-usd">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">RSI14</div><div class="c-ind-val" id="c-rsi14-usd">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">VIX</div><div class="c-ind-val" id="c-vix-usd">—</div></div>
+            </div>
+            <div class="c-asset-note" id="c-note-usd">
+              데이터 수신 중…
+            </div>
+          </div>
+          <div class="c-asset tqqq">
+            <div class="c-asset-head">
+              <div>
+                <div class="c-asset-symbol tqqq">TQQQ</div>
+                <div style="font-family: var(--mono); font-size: 9px; color: var(--c-text-2); letter-spacing: 0.15em; margin-top: 4px;">NDX 3X</div>
+              </div>
+              <div class="c-asset-price">
+                <div class="c-asset-price-val" id="c-price-tqqq">—</div>
+                <div class="c-asset-price-chg" id="c-chg-tqqq">—</div>
+              </div>
+            </div>
+            <div class="c-signal">
+              <div class="c-signal-dot" id="c-signal-dot-tqqq"></div>
+              <div class="c-signal-name" id="c-signal-tqqq">—</div>
+              <div class="c-signal-weight"><span id="c-weight-tqqq">—</span></div>
+            </div>
+            <div class="c-indicators">
+              <div class="c-ind"><div class="c-ind-label">vs MA200</div><div class="c-ind-val" id="c-ma200-tqqq">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">ROC60</div><div class="c-ind-val" id="c-roc60-tqqq">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">RSI14</div><div class="c-ind-val" id="c-rsi14-tqqq">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">VIX</div><div class="c-ind-val" id="c-vix-tqqq">—</div></div>
+            </div>
+            <div class="c-asset-note" id="c-note-tqqq">
+              데이터 수신 중…
+            </div>
+          </div>
+          <div class="c-asset soxl">
+            <div class="c-asset-head">
+              <div>
+                <div class="c-asset-symbol soxl">SOXL</div>
+                <div style="font-family: var(--mono); font-size: 9px; color: var(--c-text-2); letter-spacing: 0.15em; margin-top: 4px;">PHLX SEMI 3X</div>
+              </div>
+              <div class="c-asset-price">
+                <div class="c-asset-price-val" id="c-price-soxl">—</div>
+                <div class="c-asset-price-chg" id="c-chg-soxl">—</div>
+              </div>
+            </div>
+            <div class="c-signal">
+              <div class="c-signal-dot" id="c-signal-dot-soxl"></div>
+              <div class="c-signal-name" id="c-signal-soxl">—</div>
+              <div class="c-signal-weight"><span id="c-weight-soxl">—</span></div>
+            </div>
+            <div class="c-indicators">
+              <div class="c-ind"><div class="c-ind-label">vs MA200</div><div class="c-ind-val" id="c-ma200-soxl">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">ROC60</div><div class="c-ind-val" id="c-roc60-soxl">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">RSI14</div><div class="c-ind-val" id="c-rsi14-soxl">—</div></div>
+              <div class="c-ind"><div class="c-ind-label">VIX PEAK</div><div class="c-ind-val" id="c-vix-soxl">—</div></div>
+            </div>
+            <div class="c-asset-note" id="c-note-soxl">
+              데이터 수신 중…
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="c-metrics">
+          <div class="c-section-title">
+            <span class="c-section-num">[02]</span>
+            STRATEGY · 16Y BACKTEST
+          </div>
+          <div class="c-metric-cells">
+            <div class="c-mc">
+              <div class="c-mc-label">CAGR</div>
+              <div class="c-mc-val pos">74.9%</div>
+              <div class="c-mc-bench"><span>BH 25.4%</span><span class="delta">+49.5</span></div>
+            </div>
+            <div class="c-mc">
+              <div class="c-mc-label">CALMAR</div>
+              <div class="c-mc-val pos">1.31</div>
+              <div class="c-mc-bench"><span>BH 0.30</span><span class="delta">+1.01</span></div>
+            </div>
+            <div class="c-mc">
+              <div class="c-mc-label">SHARPE</div>
+              <div class="c-mc-val neutral">1.19</div>
+              <div class="c-mc-bench"><span>BH 0.51</span><span class="delta">+0.68</span></div>
+            </div>
+            <div class="c-mc">
+              <div class="c-mc-label">MDD</div>
+              <div class="c-mc-val neg">-57%</div>
+              <div class="c-mc-bench"><span>BH -84%</span><span class="delta">+27</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lower Grid -->
+      <div class="c-lower-grid">
+        <div class="c-equity">
+          <div class="c-equity-head">
+            <div class="c-section-title">
+              <span class="c-section-num">[03]</span>
+              CUMULATIVE EQUITY · 16Y
+            </div>
+            <span style="font-family: var(--mono); font-size: 9px; color: var(--c-text-2);">2011 → 2026 · LOG</span>
+          </div>
+          <div class="c-equity-stats">
+            <div>
+              <div class="c-eq-stat-label">v9</div>
+              <div class="c-eq-stat-val pos">+1284.7%</div>
+            </div>
+            <div>
+              <div class="c-eq-stat-label">BH TQQQ</div>
+              <div class="c-eq-stat-val">+285.1%</div>
+            </div>
+            <div>
+              <div class="c-eq-stat-label">SPY</div>
+              <div class="c-eq-stat-val">+412.5%</div>
+            </div>
+            <div>
+              <div class="c-eq-stat-label">α vs BH</div>
+              <div class="c-eq-stat-val delta">+999.6%P</div>
+            </div>
+          </div>
+          <div class="c-equity-chart">
+            <svg viewBox="0 0 800 240" preserveAspectRatio="none" style="width:100%;height:100%;">
+              <defs>
+                <linearGradient id="cEqFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ff9d4a" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="#ff9d4a" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <line x1="0" y1="60" x2="800" y2="60" stroke="#232c3b" stroke-width="0.5" stroke-dasharray="3,5"/>
+              <line x1="0" y1="120" x2="800" y2="120" stroke="#232c3b" stroke-width="0.5" stroke-dasharray="3,5"/>
+              <line x1="0" y1="180" x2="800" y2="180" stroke="#232c3b" stroke-width="0.5" stroke-dasharray="3,5"/>
+              <path d="M 0 215 Q 80 208 120 200 T 200 180 T 280 165 T 360 145 T 440 175 T 520 110 T 600 80 T 680 105 T 760 90 L 800 85"
+                    fill="none" stroke="#5eb6ff" stroke-width="1.2" opacity="0.5" stroke-dasharray="3,3"/>
+              <path d="M 0 215 Q 60 210 100 200 T 180 175 T 260 150 T 340 110 T 420 120 T 500 70 T 580 30 T 660 45 T 740 18 L 800 8 L 800 240 L 0 240 Z"
+                    fill="url(#cEqFill)"/>
+              <path d="M 0 215 Q 60 210 100 200 T 180 175 T 260 150 T 340 110 T 420 120 T 500 70 T 580 30 T 660 45 T 740 18 L 800 8"
+                    fill="none" stroke="#ff9d4a" stroke-width="2"/>
+              <circle cx="800" cy="8" r="4" fill="#ff9d4a"/>
+              <text x="0" y="232" fill="#424c61" font-family="JetBrains Mono" font-size="9">2011</text>
+              <text x="200" y="232" fill="#424c61" font-family="JetBrains Mono" font-size="9">2015</text>
+              <text x="400" y="232" fill="#424c61" font-family="JetBrains Mono" font-size="9">2019</text>
+              <text x="600" y="232" fill="#424c61" font-family="JetBrains Mono" font-size="9">2023</text>
+              <text x="780" y="232" fill="#424c61" font-family="JetBrains Mono" font-size="9" text-anchor="end">2026</text>
+              <text x="760" y="20" fill="#ff9d4a" font-family="JetBrains Mono" font-size="11" font-weight="600" text-anchor="end">v9 13.85x</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="c-timeline">
+          <div class="c-tl-head">
+            <div class="c-section-title">
+              <span class="c-section-num">[04]</span>
+              REBALANCE LOG
+            </div>
+          </div>
+          <div class="c-tl-list">
+            <div class="c-tl-item pending">
+              <div class="c-tl-when">2026.05.01 · PENDING</div>
+              <div class="c-tl-what action">▸ TQQQ +5.8%P breach (3d)</div>
+              <div class="c-tl-changes">
+                <span class="c-tl-change down">TQQQ-5.8</span>
+                <span class="c-tl-change up">USD+2.3</span>
+                <span class="c-tl-change up">SOXL+3.5</span>
+              </div>
+            </div>
+            <div class="c-tl-item">
+              <div class="c-tl-when">2026.03.22</div>
+              <div class="c-tl-what">▸ SOXL -5.1%P breach</div>
+              <div class="c-tl-changes">
+                <span class="c-tl-change up">SOXL+5.1</span>
+                <span class="c-tl-change down">TQQQ-2.8</span>
+                <span class="c-tl-change down">USD-2.3</span>
+              </div>
+            </div>
+            <div class="c-tl-item">
+              <div class="c-tl-when">2026.02.15</div>
+              <div class="c-tl-what">▸ TQQQ +5.3%P breach</div>
+              <div class="c-tl-changes">
+                <span class="c-tl-change down">TQQQ-5.3</span>
+                <span class="c-tl-change up">USD+3.1</span>
+                <span class="c-tl-change up">SOXL+2.2</span>
+              </div>
+            </div>
+            <div class="c-tl-item">
+              <div class="c-tl-when">2026.01.04</div>
+              <div class="c-tl-what">▸ USD +5.2%P breach</div>
+              <div class="c-tl-changes">
+                <span class="c-tl-change down">USD-5.2</span>
+                <span class="c-tl-change up">TQQQ+2.8</span>
+                <span class="c-tl-change up">SOXL+2.4</span>
+              </div>
+            </div>
+            <div class="c-tl-item">
+              <div class="c-tl-when">2025.12.08</div>
+              <div class="c-tl-what">▸ SOXL +6.4%P breach</div>
+              <div class="c-tl-changes">
+                <span class="c-tl-change down">SOXL-6.4</span>
+                <span class="c-tl-change up">USD+3.5</span>
+                <span class="c-tl-change up">TQQQ+2.9</span>
+              </div>
+            </div>
+            <div class="c-tl-item">
+              <div class="c-tl-when">2025.10.21</div>
+              <div class="c-tl-what">▸ TQQQ -5.8%P breach</div>
+              <div class="c-tl-changes">
+                <span class="c-tl-change up">TQQQ+5.8</span>
+                <span class="c-tl-change down">USD-3.4</span>
+                <span class="c-tl-change down">SOXL-2.4</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="c-status">
+        <div class="left">
+          <div class="item"><span class="lbl">DATA</span><span class="val ok">YAHOO LIVE</span></div>
+          <div class="item"><span class="lbl">ENGINE</span><span class="val ok">v6-A OK</span></div>
+          <div class="item"><span class="lbl">REBAL</span><span class="val">±5.00%P</span></div>
+        </div>
+        <div class="item"><span class="lbl">UPTIME</span><span class="val">5y · 234d · 16h</span></div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <script>
+    /* ==============================================================
+       MODE TOGGLE
+       ============================================================== */
+    function setMode(mode) {
+      document.body.setAttribute('data-mode', mode);
+      window.scrollTo(0, 0);
+    }
+
+
+    /* ==============================================================
+       v9 LIVE ENGINE
+       - 야후 데이터 fetch (TQQQ/USD/SOXL/^VIX/QQQ)
+       - v6-A 알파 신호 계산 (자산별)
+       - 자산 비중 + 통합 포트폴리오 비중
+       - localStorage에 자산별 상태 저장 (bearvr_days, meanrev_days 등)
+       ============================================================== */
+
+    // 자산별 v6-A 파라미터 (백테스트 동일)
+    const PARAMS = {
+      TQQQ: { gamma: 0.70, bv_lev: 2.00, vix_thresh: 32, bv_stop: 0.10, meanrev_rsi: 5 },
+      USD:  { gamma: 0.70, bv_lev: 2.00, vix_thresh: 25, bv_stop: 0.15, meanrev_rsi: 15 },
+      SOXL: { gamma: 0.60, bv_lev: 1.25, vix_thresh: 30, bv_stop: 0.10, meanrev_rsi: 15 },
+    };
+    const ALLOCATION = { USD: 0.40, TQQQ: 0.35, SOXL: 0.25 };
+    const BV_HOLD = 25;
+    const MEANREV_HOLD = 3;
+    const MOMENTUM_LEV = 2.0;
+    const MEANREV_LEV = 2.0;
+    const BASE_LEV = 1.0;
+    const REBAL_THRESHOLD = 0.05; // ±5%p
+
+    /* --------------------------------------------------------------
+       야후 fetch (멀티 fallback)
+       1. /yahoo (Cloudflare Pages Function — 배포 환경에서만)
+       2. corsproxy.io (현재 잘 작동하는 CORS 프록시)
+       3. allorigins.win/raw (대안)
+       -------------------------------------------------------------- */
+    async function yahooQuote(symbol) {
+      const yahooUrl = "https://query1.finance.yahoo.com/v8/finance/chart/" + symbol + "?interval=1d&range=2y";
+      const urls = [
+        "/yahoo?symbol=" + encodeURIComponent(symbol) + "&range=2y",
+        "https://corsproxy.io/?" + encodeURIComponent(yahooUrl),
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(yahooUrl),
+      ];
+      let lastErr;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const text = await res.text();
+          let raw;
+          try {
+            raw = JSON.parse(text);
+            // allorigins.win/get은 {contents: ...} 래핑 - 처리
+            if (raw.contents && typeof raw.contents === 'string') {
+              raw = JSON.parse(raw.contents);
+            }
+          } catch(e) { throw new Error("JSON 파싱 실패"); }
+          if (!raw.chart || !raw.chart.result || !raw.chart.result[0])
+            throw new Error("데이터 없음");
+          const result = raw.chart.result[0];
+          const meta   = result.meta;
+          const closes = result.indicators.quote[0].close.filter(v => v != null);
+          const ts     = result.timestamp || [];
+          console.log('[v9] ' + symbol + ' OK via', url.split('?')[0], '·', closes.length + 'd');
+          return { meta, closes, timestamps: ts };
+        } catch (e) {
+          console.warn('[v9] ' + symbol + ' fail via', url.split('?')[0], ':', e.message);
+          lastErr = e;
+        }
+      }
+      throw new Error(symbol + " 조회 실패: " + (lastErr ? lastErr.message : "unknown"));
+    }
+
+    /* --------------------------------------------------------------
+       지표 계산 (백테스트 코드와 동일 정의)
+       -------------------------------------------------------------- */
+    function calcMA(arr, n) {
+      if (arr.length < n) return null;
+      let sum = 0;
+      for (let i = arr.length - n; i < arr.length; i++) sum += arr[i];
+      return sum / n;
+    }
+
+    function calcRSI(closes, period) {
+      if (closes.length < period + 1) return null;
+      let gains = 0, losses = 0;
+      for (let i = closes.length - period; i < closes.length; i++) {
+        const d = closes[i] - closes[i-1];
+        if (d > 0) gains += d; else losses -= d;
+      }
+      const avgGain = gains / period;
+      const avgLoss = losses / period;
+      if (avgLoss === 0) return 100;
+      return 100 - 100 / (1 + avgGain / avgLoss);
+    }
+
+    function calcROC(closes, n) {
+      if (closes.length < n + 1) return null;
+      const last = closes[closes.length - 1];
+      const past = closes[closes.length - 1 - n];
+      return (last - past) / past;
+    }
+
+    /* --------------------------------------------------------------
+       자산별 신호 계산 (v6-A 룰)
+       전체 히스토리를 simulate해서 현재 상태를 도출 (상태 일관성 보장)
+       -------------------------------------------------------------- */
+    function simulateAlpha(closes, vixCloses, params) {
+      // 인덱스 정렬 (closes와 vixCloses 길이가 다를 수 있음 - 최소값으로 맞춤)
+      const n = Math.min(closes.length, vixCloses.length);
+      const c = closes.slice(closes.length - n);
+      const v = vixCloses.slice(vixCloses.length - n);
+
+      // 매일의 지표 사전 계산
+      const features = [];
+      for (let i = 0; i < n; i++) {
+        if (i < 200) { features.push(null); continue; }
+        const slice200 = c.slice(0, i + 1);
+        const ma20  = calcMA(slice200.slice(-20), 20);
+        const ma50  = calcMA(slice200.slice(-50), 50);
+        const ma200 = calcMA(slice200, 200);
+        const rsi14 = calcRSI(slice200, 14);
+        const rsi2  = calcRSI(slice200, 2);
+        const roc60 = calcROC(slice200, 60);
+        features.push({
+          close: c[i], vix: v[i],
+          ma20, ma50, ma200, rsi14, rsi2, roc60,
+          aboveMa200: c[i] >= ma200,
+          inBear: (c[i] < ma200) && (c[i] < ma50),
+        });
+      }
+
+      // 시뮬레이션 시작
+      const state = {
+        bearvrDays: 0, meanrevDays: 0,
+        bvEntryEquity: 0, vixPeaked: false,
+        regime: 'BASE', // 'MOMENTUM' | 'MEANREV' | 'BEARVR' | 'BASE' | 'CASH'
+      };
+      let equity = 1.0;
+      let lastWeight = 0;
+
+      for (let i = 1; i < n; i++) {
+        if (!features[i] || !features[i-1]) continue;
+        const prev = features[i-1];
+        const curr = features[i];
+        const ret = (curr.close - prev.close) / prev.close;
+
+        let newWeight = 0;
+        let regime = 'CASH';
+
+        if (state.bearvrDays > 0) {
+          // 베어V자 보유 중
+          if (params.bv_stop !== null && equity < state.bvEntryEquity * (1 - params.bv_stop)) {
+            // 손절
+            state.bearvrDays = 0;
+            newWeight = 0;
+            regime = 'CASH';
+          } else {
+            newWeight = params.bv_lev * params.gamma;
+            regime = 'BEARVR';
+            state.bearvrDays -= 1;
+          }
+        } else if (state.meanrevDays > 0) {
+          // 평균회귀 보유 중
+          if (prev.aboveMa200) {
+            newWeight = MEANREV_LEV * params.gamma;
+            regime = 'MEANREV';
+            state.meanrevDays -= 1;
+          } else {
+            state.meanrevDays = 0;
+            // 같은 날 다음 분기로 떨어짐 - 일단 0으로 두고 다음 루프에서 결정
+            newWeight = 0;
+            regime = 'CASH';
+          }
+        } else if (prev.aboveMa200) {
+          // 강세장
+          if (prev.rsi2 != null && prev.rsi2 < params.meanrev_rsi) {
+            newWeight = MEANREV_LEV * params.gamma;
+            regime = 'MEANREV';
+            state.meanrevDays = MEANREV_HOLD - 1;
+          } else {
+            const momentumStrong = (
+              prev.roc60 != null && prev.roc60 > 0.10 &&
+              prev.rsi14 != null && prev.rsi14 >= 50 && prev.rsi14 <= 80 &&
+              prev.ma20 != null && prev.ma50 != null && prev.ma20 > prev.ma50
+            );
+            if (momentumStrong) {
+              newWeight = MOMENTUM_LEV * params.gamma;
+              regime = 'MOMENTUM';
+            } else {
+              newWeight = BASE_LEV * params.gamma;
+              regime = 'BASE';
+            }
+          }
+        } else {
+          // 베어
+          if (prev.vix != null && prev.vix > params.vix_thresh) {
+            state.vixPeaked = true;
+          }
+          const bearvrSignal = (
+            state.vixPeaked &&
+            prev.rsi14 != null && prev.rsi14 < 35 &&
+            curr.rsi14 != null && curr.rsi14 >= 35
+          );
+          if (bearvrSignal) {
+            newWeight = params.bv_lev * params.gamma;
+            regime = 'BEARVR';
+            state.bearvrDays = BV_HOLD - 1;
+            state.bvEntryEquity = equity;
+            state.vixPeaked = false;
+          } else {
+            newWeight = 0;
+            regime = 'CASH';
+          }
+        }
+
+        equity = equity * (1 + newWeight * ret);
+        lastWeight = newWeight;
+        state.regime = regime;
+      }
+
+      // 마지막 상태 + 현재 지표 반환
+      const last = features[n - 1];
+      return {
+        weight: lastWeight,
+        regime: state.regime,
+        bearvrDaysLeft: state.bearvrDays,
+        meanrevDaysLeft: state.meanrevDays,
+        vixPeaked: state.vixPeaked,
+        bvEntryEquity: state.bvEntryEquity,
+        equity,
+        // 현재 시점 지표
+        close: last.close,
+        ma20: last.ma20,
+        ma50: last.ma50,
+        ma200: last.ma200,
+        rsi14: last.rsi14,
+        rsi2: last.rsi2,
+        roc60: last.roc60,
+        aboveMa200: last.aboveMa200,
+        // 손절선 까지 거리 (BEARVR일 때)
+        ddFromEntry: state.bvEntryEquity > 0 ? (equity / state.bvEntryEquity - 1) : null,
+      };
+    }
+
+    /* --------------------------------------------------------------
+       UI 업데이트 헬퍼
+       -------------------------------------------------------------- */
+    const REGIME_LABELS = {
+      MOMENTUM: { ko: '상승 흐름',  poem: '물결이 한 방향으로 모이고 있다.', en: 'MOMENTUM',   color: 'momentum' },
+      MEANREV:  { ko: '회귀의 흐름', poem: '깊이 가라앉았다 다시 떠오른다.',  en: 'MEAN REV',    color: 'meanrev'  },
+      BEARVR:   { ko: '회복의 흐름', poem: '폭풍이 지나간 후, 깊은 곳에서.',  en: 'BEAR V-REV',  color: 'bearvr'   },
+      BASE:     { ko: '평온한 흐름', poem: '아직 바람을 기다리는 강.',        en: 'BASE REGIME', color: 'base'     },
+      CASH:     { ko: '잠긴 흐름',   poem: '물러나 때를 기다린다.',           en: 'CASH',        color: 'base'     },
+    };
+
+    function fmtPct(v, digits = 1) {
+      if (v == null) return '—';
+      const sign = v >= 0 ? '+' : '';
+      return sign + (v * 100).toFixed(digits) + '%';
+    }
+    function fmtNum(v, digits = 2) {
+      if (v == null) return '—';
+      return v.toFixed(digits);
+    }
+    function fmtPrice(v) {
+      if (v == null) return '—';
+      return '$' + v.toFixed(2);
+    }
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+    function setHTML(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = value;
+    }
+    function setClass(id, cls) {
+      const el = document.getElementById(id);
+      if (el) el.className = cls;
+    }
+
+    /* --------------------------------------------------------------
+       메인 데이터 로드
+       -------------------------------------------------------------- */
+    async function loadV9Data() {
+      console.log('[v9] 데이터 로드 시작');
+      try {
+        // 5개 자산 병렬 fetch
+        const [tqqq, usd, soxl, vix, qqq] = await Promise.all([
+          yahooQuote('TQQQ'),
+          yahooQuote('USD'),
+          yahooQuote('SOXL'),
+          yahooQuote('^VIX'),
+          yahooQuote('QQQ'),
+        ]);
+
+        // fetch 결과 검증 - 데이터 없으면 즉시 중단
+        const checks = { TQQQ: tqqq, USD: usd, SOXL: soxl, VIX: vix, QQQ: qqq };
+        for (const [name, d] of Object.entries(checks)) {
+          if (!d || !d.closes || d.closes.length < 250) {
+            throw new Error(name + ' 데이터 부족 (받은 길이: ' + (d?.closes?.length ?? 0) + ', 필요: 250+)');
+          }
+        }
+
+        console.log('[v9] 데이터 수신 완료', {
+          TQQQ: tqqq.closes.length,
+          USD: usd.closes.length,
+          SOXL: soxl.closes.length,
+          VIX: vix.closes.length,
+        });
+
+        // 자산별 알파 시뮬레이션
+        const sigUSD  = simulateAlpha(usd.closes,  vix.closes, PARAMS.USD);
+        const sigTQQQ = simulateAlpha(tqqq.closes, vix.closes, PARAMS.TQQQ);
+        const sigSOXL = simulateAlpha(soxl.closes, vix.closes, PARAMS.SOXL);
+
+        // 시뮬레이션 결과 검증
+        if (!sigUSD || !sigTQQQ || !sigSOXL) {
+          throw new Error('알파 시뮬레이션 실패');
+        }
+
+        // 현재가 (실시간)
+        const priceUSD  = usd.meta.regularMarketPrice  || sigUSD.close;
+        const priceTQQQ = tqqq.meta.regularMarketPrice || sigTQQQ.close;
+        const priceSOXL = soxl.meta.regularMarketPrice || sigSOXL.close;
+        const priceVIX  = vix.meta.regularMarketPrice  || vix.closes[vix.closes.length - 1];
+
+        // 일일 변화율
+        const chgUSD  = (priceUSD  / usd.closes[usd.closes.length - 2]   - 1);
+        const chgTQQQ = (priceTQQQ / tqqq.closes[tqqq.closes.length - 2] - 1);
+        const chgSOXL = (priceSOXL / soxl.closes[soxl.closes.length - 2] - 1);
+
+        // 통합 데이터 객체
+        const data = {
+          assets: [
+            { key: 'USD',  data: sigUSD,  price: priceUSD,  change: chgUSD,  capitalAlloc: ALLOCATION.USD,  params: PARAMS.USD  },
+            { key: 'TQQQ', data: sigTQQQ, price: priceTQQQ, change: chgTQQQ, capitalAlloc: ALLOCATION.TQQQ, params: PARAMS.TQQQ },
+            { key: 'SOXL', data: sigSOXL, price: priceSOXL, change: chgSOXL, capitalAlloc: ALLOCATION.SOXL, params: PARAMS.SOXL },
+          ],
+          vix: priceVIX,
+          updatedAt: new Date(),
+        };
+
+        console.log('[v9] 신호 결과', {
+          USD:  { regime: sigUSD.regime,  weight: sigUSD.weight  },
+          TQQQ: { regime: sigTQQQ.regime, weight: sigTQQQ.weight },
+          SOXL: { regime: sigSOXL.regime, weight: sigSOXL.weight },
+        });
+
+        // UI 바인딩
+        renderAssetCards(data);
+        renderHeader(data);
+        renderConsole(data);
+
+      } catch (e) {
+        console.error('[v9] 로드 실패:', e);
+        // UI에 에러 표시
+        ['usd', 'tqqq', 'soxl'].forEach(k => {
+          const sig = document.getElementById('flow-signal-' + k);
+          if (sig) sig.textContent = '연결 실패';
+          const poem = document.getElementById('flow-poem-' + k);
+          if (poem) poem.textContent = e.message;
+          const ref = document.getElementById('flow-reflection-' + k);
+          if (ref) ref.innerHTML = '<span class="lbl">error</span>' + e.message;
+        });
+      }
+    }
+
+    /* --------------------------------------------------------------
+       UI: Flow 모드 자산 카드 + Console 모드 자산 카드
+       -------------------------------------------------------------- */
+    function renderAssetCards(data) {
+      data.assets.forEach(asset => {
+        const k = asset.key.toLowerCase();
+        const sig = asset.data;
+        const regimeInfo = REGIME_LABELS[sig.regime] || REGIME_LABELS.BASE;
+
+        // === Flow 모드 ===
+        // 신호 이름
+        const flowSignalEl = document.getElementById('flow-signal-' + k);
+        if (flowSignalEl) {
+          flowSignalEl.textContent = regimeInfo.ko;
+          flowSignalEl.className = 'stream-name ' + regimeInfo.color;
+        }
+        const flowPoemEl = document.getElementById('flow-poem-' + k);
+        if (flowPoemEl) flowPoemEl.textContent = regimeInfo.poem;
+
+        // 지표값
+        setText('flow-ma200-' + k, fmtPct(sig.close / sig.ma200 - 1));
+        setText('flow-ma50-'  + k, fmtPct(sig.close / sig.ma50  - 1));
+        setText('flow-roc60-' + k, fmtPct(sig.roc60));
+        setText('flow-rsi14-' + k, fmtNum(sig.rsi14));
+        setText('flow-price-' + k, fmtPrice(asset.price));
+        setText('flow-vix-'   + k, fmtNum(data.vix));
+
+        // 색상 (up/down/warm)
+        const ma200Cls = sig.close > sig.ma200 ? 'up' : 'down';
+        const ma50Cls  = sig.close > sig.ma50  ? 'up' : 'down';
+        const rocCls   = sig.roc60 == null ? '' : (sig.roc60 > 0.10 ? 'up' : (sig.roc60 > 0 ? 'warm' : 'down'));
+        const ma200El = document.getElementById('flow-ma200-' + k);
+        const ma50El  = document.getElementById('flow-ma50-'  + k);
+        const rocEl   = document.getElementById('flow-roc60-' + k);
+        if (ma200El) ma200El.className = 'depth-value ' + ma200Cls;
+        if (ma50El)  ma50El.className  = 'depth-value ' + ma50Cls;
+        if (rocEl)   rocEl.className   = 'depth-value ' + rocCls;
+
+        // 비중
+        const weightPct = Math.round(sig.weight * 100);
+        setText('flow-weight-' + k, weightPct);
+        const weightFill = document.getElementById('flow-weight-fill-' + k);
+        if (weightFill) {
+          // 0~225% 스케일에서 차지하는 비율
+          const pct = Math.min(weightPct / 225 * 100, 100);
+          weightFill.style.width = pct + '%';
+        }
+
+        // 리플렉션 (조건 설명)
+        renderReflection(k, asset);
+
+        // === Console 모드 ===
+        const cSigEl = document.getElementById('c-signal-' + k);
+        if (cSigEl) {
+          cSigEl.textContent = regimeInfo.en;
+          cSigEl.className = 'c-signal-name ' + regimeInfo.color;
+        }
+        const cDotEl = document.getElementById('c-signal-dot-' + k);
+        if (cDotEl) cDotEl.className = 'c-signal-dot ' + regimeInfo.color;
+
+        setText('c-weight-' + k, weightPct + '%');
+        setText('c-price-' + k, fmtPrice(asset.price));
+        const cChgEl = document.getElementById('c-chg-' + k);
+        if (cChgEl) {
+          cChgEl.textContent = (asset.change >= 0 ? '▲ ' : '▼ ') + fmtPct(asset.change);
+          cChgEl.className = 'c-asset-price-chg ' + (asset.change >= 0 ? 'up' : 'down');
+        }
+        setText('c-ma200-' + k, fmtPct(sig.close / sig.ma200 - 1));
+        setText('c-roc60-' + k, fmtPct(sig.roc60));
+        setText('c-rsi14-' + k, fmtNum(sig.rsi14));
+        setText('c-vix-'   + k, fmtNum(data.vix));
+
+        const cMa200El = document.getElementById('c-ma200-' + k);
+        const cRocEl   = document.getElementById('c-roc60-' + k);
+        if (cMa200El) cMa200El.className = 'c-ind-val ' + ma200Cls;
+        if (cRocEl)   cRocEl.className   = 'c-ind-val ' + rocCls;
+
+        const cNoteEl = document.getElementById('c-note-' + k);
+        if (cNoteEl) cNoteEl.textContent = regimeNote(asset, 'en');
+      });
+    }
+
+    function renderReflection(k, asset) {
+      const sig = asset.data;
+      const el = document.getElementById('flow-reflection-' + k);
+      if (!el) return;
+      let cls = 'reflection';
+      let body = '';
+      switch (sig.regime) {
+        case 'BEARVR':
+          cls = 'reflection warning';
+          const daysGone = BV_HOLD - sig.bearvrDaysLeft;
+          const ddPct = (sig.ddFromEntry * 100).toFixed(1);
+          const stopRoom = (asset.params.bv_stop * 100 - Math.abs(sig.ddFromEntry * 100)).toFixed(1);
+          body = '<span class="lbl">v자 회복</span>'
+               + daysGone + '일째 / ' + BV_HOLD + '일까지 흐름 따라. '
+               + '손절선 -' + (asset.params.bv_stop * 100).toFixed(0) + '%까지 ' + stopRoom + '% 여유.';
+          break;
+        case 'MOMENTUM':
+          cls = 'reflection gentle';
+          body = '<span class="lbl">flow</span>'
+               + (asset.params.bv_lev * 100).toFixed(0) + '% × ' + asset.params.gamma.toFixed(2)
+               + ' = ' + Math.round(sig.weight * 100) + '% 비중. 모멘텀 게이트 열림.';
+          break;
+        case 'MEANREV':
+          cls = 'reflection gentle';
+          body = '<span class="lbl">평균회귀</span>'
+               + (MEANREV_HOLD - sig.meanrevDaysLeft) + '일째 / ' + MEANREV_HOLD + '일 보유 후 종료.';
+          break;
+        case 'CASH':
+          cls = 'reflection';
+          body = '<span class="lbl">관망</span>물러나 때를 기다린다.'
+               + (sig.vixPeaked ? ' VIX 임계 돌파 — V자 진입 대기.' : '');
+          break;
+        default:
+          cls = 'reflection';
+          body = '<span class="lbl">flow</span>'
+               + 'ROC60 ' + fmtPct(sig.roc60) + '. 기본 흐름으로.';
+      }
+      el.className = cls;
+      el.innerHTML = body;
+    }
+
+    function regimeNote(asset, lang) {
+      const sig = asset.data;
+      const p = asset.params;
+      switch (sig.regime) {
+        case 'MOMENTUM':
+          return (p.bv_lev * 100).toFixed(0) + '% × ' + p.gamma.toFixed(2) + 'γ = ' + Math.round(sig.weight * 100) + '% lev · momentum gate OPEN';
+        case 'MEANREV':
+          return 'mean-rev DAY ' + (MEANREV_HOLD - sig.meanrevDaysLeft) + '/' + MEANREV_HOLD;
+        case 'BEARVR':
+          const dd = (sig.ddFromEntry * 100).toFixed(1);
+          return 'v-rev DAY ' + (BV_HOLD - sig.bearvrDaysLeft) + '/' + BV_HOLD + ' · stop@-' + (p.bv_stop * 100).toFixed(0) + '% (curr ' + dd + '%)';
+        case 'CASH':
+          return 'CASH · ' + (sig.vixPeaked ? 'VIX peak armed, awaiting RSI cross' : 'awaiting trigger');
+        default:
+          return 'ROC60 ' + fmtPct(sig.roc60) + ' < 10% threshold · gate CLOSED';
+      }
+    }
+
+    /* --------------------------------------------------------------
+       UI: 헤더 + Stillness (운영 상태 메시지)
+       Phase 1 (운영 시작 전): 신호 요약 + 안내
+       Phase 2 (운영 시작 후): 실제 자본 비중 vs 목표 비중 편차로 판단
+       -------------------------------------------------------------- */
+    function renderHeader(data) {
+      const state = document.getElementById('stillness-state');
+      const poem  = document.getElementById('stillness-poem');
+      const btn   = document.getElementById('stillness-action');
+
+      // === Phase 1 (운영 시작 전): 신호 요약 ===
+      // 자산별 regime을 한글로
+      const regimeKo = {
+        MOMENTUM: '상승', MEANREV: '회귀', BEARVR: '회복', BASE: '평온', CASH: '잠김',
+      };
+      const summary = data.assets.map(a => {
+        return a.key + ' ' + regimeKo[a.data.regime];
+      }).join(' · ');
+
+      // 베어V자 진입 중인 자산이 있는지 확인 (가장 주의가 필요한 상태)
+      const bearvrAsset = data.assets.find(a => a.data.regime === 'BEARVR');
+      // 모멘텀 진입 중인 자산
+      const momentumAssets = data.assets.filter(a => a.data.regime === 'MOMENTUM');
+      // 평균회귀 진입 중인 자산
+      const meanrevAssets = data.assets.filter(a => a.data.regime === 'MEANREV');
+
+      // 메시지 결정
+      if (bearvrAsset) {
+        const daysGone = BV_HOLD - bearvrAsset.data.bearvrDaysLeft;
+        state.textContent = '회복의 흐름.';
+        state.style.color = 'var(--flow-sunset)';
+        poem.innerHTML = '<em>' + bearvrAsset.key + '</em>이 폭풍 후 다시 일어서는 중. <br>'
+                       + 'V자 회복 ' + daysGone + '일째, ' + bearvrAsset.data.bearvrDaysLeft + '일 남음.';
+      } else if (momentumAssets.length > 0) {
+        state.textContent = '흐름에 맡기는 중.';
+        state.style.color = 'var(--flow-text-snow)';
+        const names = momentumAssets.map(a => '<em>' + a.key + '</em>').join(', ');
+        poem.innerHTML = names + '의 물결이 한 방향으로 모이고 있다. <br>'
+                       + '아직 손댈 때가 아니다.';
+      } else if (meanrevAssets.length > 0) {
+        const a = meanrevAssets[0];
+        state.textContent = '회귀의 결.';
+        state.style.color = 'var(--flow-glacier)';
+        poem.innerHTML = '<em>' + a.key + '</em>이 깊이 가라앉았다 다시 떠오른다. <br>'
+                       + '짧은 흐름의 끝을 기다린다.';
+      } else {
+        state.textContent = '흐름에 맡기는 중.';
+        state.style.color = 'var(--flow-text-snow)';
+        poem.innerHTML = '세 강이 모두 평온하다. <br>' + summary + '.';
+      }
+
+      // 운영 시작 전 — 버튼 숨김
+      btn.style.display = 'none';
+
+      // 마지막 갱신 시각 (옵션 - 콘솔에만)
+      console.log('[v9] UI 갱신 완료', data.updatedAt.toLocaleTimeString('ko-KR'));
+    }
+
+    /* --------------------------------------------------------------
+       UI: Console 모드 (Action Center 등 추가 영역)
+       -------------------------------------------------------------- */
+    function renderConsole(data) {
+      // Action Center의 편차 부분은 운영 시작 전이라 백테스트 시점 mock 유지
+      // 운영 시작 시 실제 자본 비중 vs 목표 비중 비교로 갱신
+    }
+
+    /* --------------------------------------------------------------
+       초기 로드
+       -------------------------------------------------------------- */
+    document.addEventListener('DOMContentLoaded', () => {
+      loadV9Data();
+      // 5분마다 자동 갱신
+      setInterval(loadV9Data, 5 * 60 * 1000);
+    });
+  </script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+</body>
+</html>
