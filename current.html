@@ -1383,6 +1383,7 @@
   /* ============================================================
      반응형
      ============================================================ */
+  /* === 태블릿 (max 1100px) === */
   @media (max-width: 1100px) {
     .scene-summit, .scene-lake, .scene-river, .scene-ocean, .scene-bay, .closing.flow-only {
       padding-left: 24px; padding-right: 24px;
@@ -1403,6 +1404,193 @@
     .console-only.console-root { padding: 16px; }
     .mode-switch { top: 12px; right: 12px; }
     .mode-btn { padding: 8px 14px; font-size: 10px; }
+  }
+
+  /* === 모바일 (max 640px) === */
+  @media (max-width: 640px) {
+    html { font-size: 13px; }
+
+    /* === Flow 모드 === */
+    .scene-summit, .scene-lake, .scene-river, .scene-ocean, .scene-bay, .closing.flow-only {
+      padding: 64px 16px;
+      min-height: auto;
+    }
+    .scene-summit { min-height: 88vh; padding: 64px 16px; }
+
+    /* Opening */
+    .mark { font-size: 9px; letter-spacing: 0.3em; margin-bottom: 20px; }
+    .name { font-size: 56px; }
+    .name .v { font-size: 0.25em; margin-left: 6px; }
+    .whisper { font-size: 16px; margin-top: 24px; }
+    .breath { gap: 12px; font-size: 9px; letter-spacing: 0.2em; flex-wrap: wrap; margin-top: 36px; }
+
+    /* Lake (current) */
+    .current-grid {
+      grid-template-columns: 1fr;
+      gap: 36px;
+      padding: 36px 20px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .heritage-label { font-size: 11px; letter-spacing: 0.2em; }
+    .heritage-value { font-size: 48px; }
+    .heritage-value .currency { font-size: 0.4em; margin-right: 8px; }
+    .heritage-tides { gap: 24px; flex-wrap: wrap; }
+    .tide-value { font-size: 20px; }
+
+    .stillness-state { font-size: 36px; }
+    .stillness-poem { font-size: 16px; max-width: none; }
+    .stillness-action { font-size: 14px; padding: 12px 24px; }
+
+    /* Three Rivers */
+    .section-mark { margin-bottom: 40px; }
+    .section-mark-title { font-size: 28px; }
+    .section-mark-sub { font-size: 13px; margin-top: 10px; }
+    .section-mark-line { font-size: 9px; letter-spacing: 0.3em; }
+
+    .rivers { gap: 20px; }
+    .river { padding: 32px 20px 28px; }
+    .river-name { font-size: 11px; letter-spacing: 0.2em; }
+    .river-symbol { font-size: 44px; }
+    .river-essence { font-size: 14px; margin-bottom: 24px; }
+    .stream-name { font-size: 26px; }
+    .stream-poem { font-size: 13px; }
+    .depth-grid { gap: 12px 20px; margin-top: 16px; }
+    .depth-value { font-size: 14px; }
+    .pulse-value { font-size: 52px; }
+    .pulse { margin-top: 24px; }
+    .reflection { font-size: 13px; margin-top: 20px; padding-top: 16px; }
+
+    /* Sixteen Years */
+    .journey-stats {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .j-stat { padding: 20px 12px; }
+    .j-stat-label { font-size: 9px; letter-spacing: 0.2em; margin-bottom: 12px; }
+    .j-stat-value { font-size: 32px; margin-bottom: 10px; }
+    .j-stat-bench { font-size: 11px; }
+    .journey-canvas { height: 280px; padding: 12px; }
+
+    /* Bay - passages */
+    .passage-stream { padding: 0 8px; }
+    .passage { padding: 20px 0; gap: 8px; }
+    .passage-when { font-size: 10px; letter-spacing: 0.15em; }
+    .passage-what { font-size: 16px; }
+    .passage-changes { gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .passage-changes.right { justify-content: center; }
+    .passage-change { font-size: 10px; padding: 3px 6px; }
+
+    /* Closing */
+    .closing.flow-only { padding: 80px 20px; }
+    .closing-line { font-size: 16px; }
+    .closing-stamp { gap: 12px; flex-wrap: wrap; font-size: 8px; letter-spacing: 0.2em; }
+
+    /* === Console 모드 === */
+    .console-only.console-root { padding: 12px 12px 24px; }
+    .console-grid-layout { gap: 12px; }
+
+    /* Header */
+    .c-header {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+    }
+    .c-header-right { width: 100%; }
+    .c-portfolio { text-align: left; }
+    .c-system-title { font-size: 18px; }
+    .c-system-sub { font-size: 9px; letter-spacing: 0.05em; }
+    .c-system-sub .dot { margin: 0 4px; }
+    .c-portfolio-value { font-size: 22px; }
+
+    /* Action Center */
+    .c-action { padding: 16px 18px; }
+    .c-action-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .c-action-body {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .c-trigger-value { font-size: 32px; }
+    .c-deviation { grid-template-columns: 1fr; gap: 8px; }
+    .c-action-pill { font-size: 9px; padding: 4px 10px; }
+
+    /* Main grid - assets + metrics */
+    .c-main-grid { grid-template-columns: 1fr; gap: 12px; }
+    .c-assets { grid-template-columns: 1fr; gap: 10px; }
+    .c-asset { padding: 14px 16px; }
+    .c-asset-symbol { font-size: 18px; }
+    .c-asset-price-val { font-size: 14px; }
+    .c-signal { padding: 8px 10px; }
+    .c-signal-name { font-size: 10px; letter-spacing: 0.05em; }
+    .c-signal-weight { font-size: 13px; }
+    .c-indicators { font-size: 10px; }
+    .c-ind { padding: 6px 10px; }
+    .c-ind-val { font-size: 11px; }
+    .c-asset-note { font-size: 9px; }
+
+    .c-metrics { padding: 14px 16px; }
+    .c-metric-cells { gap: 8px; }
+    .c-mc { padding: 10px 8px; }
+    .c-mc-val { font-size: 18px; }
+    .c-mc-bench { font-size: 8px; }
+
+    /* Lower grid - equity + timeline */
+    .c-lower-grid { grid-template-columns: 1fr; gap: 12px; }
+    .c-equity-stats {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 10px 14px;
+    }
+    .c-eq-stat-val { font-size: 14px; }
+    .c-eq-stat-label { font-size: 8px; letter-spacing: 0.15em; }
+    .c-equity-chart { height: 180px; padding: 12px; }
+    .c-tl-list { max-height: 280px; }
+    .c-tl-item { padding: 10px 14px 10px 30px; }
+    .c-tl-item::before { left: 12px; top: 14px; width: 6px; height: 6px; }
+    .c-tl-when { font-size: 9px; }
+    .c-tl-what { font-size: 10px; }
+    .c-tl-change { font-size: 8px; padding: 1px 4px; }
+
+    /* Status */
+    .c-status {
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 16px;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+    }
+    .c-status .left {
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Mode toggle */
+    .mode-switch {
+      top: 8px; right: 8px;
+      padding: 4px;
+    }
+    .mode-btn {
+      padding: 6px 10px;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      gap: 4px;
+    }
+    .mode-btn .icon { font-size: 11px; }
+  }
+
+  /* === 작은 모바일 (max 380px) === */
+  @media (max-width: 380px) {
+    .name { font-size: 44px; }
+    .heritage-value { font-size: 38px; }
+    .stillness-state { font-size: 28px; }
+    .section-mark-title { font-size: 24px; }
+    .river-symbol { font-size: 36px; }
+    .pulse-value { font-size: 44px; }
+    .j-stat-value { font-size: 26px; }
+    .breath span:not(.dot) { display: none; }
+    .breath .dot { display: inline-block; }
   }
 </style>
 </head>
