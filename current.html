@@ -1499,7 +1499,9 @@
     .passage { grid-template-columns: 1fr; text-align: center; gap: 16px; }
     .passage-left, .passage-right { text-align: center; }
     .passage-stream::before { display: none; }
+    .c-header { padding-right: 28px; padding-top: 56px; } /* 토글이 위로 올라가니 헤더 위 여백 */
     .c-action-body, .c-main-grid, .c-lower-grid, .c-assets, .c-deviation { grid-template-columns: 1fr; }
+    .c-mode-options { grid-template-columns: 1fr; gap: 8px; }
     .console-only.console-root { padding: 16px; }
     .mode-switch { top: 12px; right: 12px; }
     .mode-btn { padding: 8px 14px; font-size: 10px; }
@@ -1595,6 +1597,7 @@
       grid-template-columns: 1fr;
       gap: 16px;
       padding: 16px 20px;
+      padding-top: 56px; /* 토글 공간 */
     }
     .c-header-right { width: 100%; }
     .c-portfolio { text-align: left; }
@@ -1602,6 +1605,16 @@
     .c-system-sub { font-size: 9px; letter-spacing: 0.05em; }
     .c-system-sub .dot { margin: 0 4px; }
     .c-portfolio-value { font-size: 22px; }
+
+    /* Operating Mode */
+    .c-mode-card { padding: 14px 18px; }
+    .c-mode-header { margin-bottom: 12px; flex-direction: column; align-items: flex-start; gap: 6px; }
+    .c-mode-options { grid-template-columns: 1fr; gap: 8px; }
+    .c-mode-option { padding: 12px 14px; }
+    .c-mode-name { font-size: 10px; letter-spacing: 0.1em; }
+    .c-mode-cap { font-size: 8px; margin-bottom: 8px; }
+    .c-mode-stats { gap: 2px 8px; font-size: 8px; }
+    .c-mode-active-info { font-size: 9px; }
 
     /* Action Center */
     .c-action { padding: 16px 18px; }
