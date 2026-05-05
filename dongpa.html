@@ -744,7 +744,14 @@ function detectMode(rsiArr) {
 
   if (toSafe) return 'SAFE';
   if (toAggr) return 'AGGR';
-  return null; // 유지
+
+  // 이번 주 전환 없음 → 히스토리에서 가장 최근 전환 시그널의 모드 유지
+  // (cold start 시점에도 항상 정확한 모드로 초기화)
+  const allSignals = detectAllSignals(rsiArr);
+  if (allSignals.length > 0) {
+    return allSignals[allSignals.length - 1].type;
+  }
+  return null; // 히스토리에 전환 시그널 자체가 없을 때만 null
 }
 
 function updateRsiSignal(rsiArr) {
