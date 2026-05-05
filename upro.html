@@ -642,7 +642,7 @@ async function loadSignal() {
     var vixC  = vixBars.map(function(b){ return b.c; });
 
     // 현재 지표
-    var uproPrice  = results[0].meta.regularMarketPrice || uproC[uproC.length-1];
+    var uproPrice  = r0.meta.regularMarketPrice || uproC[uproC.length-1];
     var uproPrev   = uproC[uproC.length-2];
     var uproPctChg = (uproPrice - uproPrev) / uproPrev * 100;
 
