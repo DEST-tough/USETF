@@ -114,20 +114,79 @@
 
   .hero-content{position:relative;z-index:5;text-align:center}
   .hero .pre{font-family:'Share Tech Mono',monospace;font-size:11px;
-    letter-spacing:6px;color:rgba(255,255,255,.7);text-transform:uppercase;margin-bottom:14px}
-  .hero .verdict{
-    font-family:'Manrope',sans-serif;font-size:140px;line-height:.9;letter-spacing:-3px;
+    letter-spacing:6px;color:rgba(255,255,255,.7);text-transform:uppercase;margin-bottom:20px}
+
+  /* === Option 4 + 동적 분할: 큰 임팩트 + 자산 sub line === */
+  .v-headline{
+    font-family:'Manrope',sans-serif;font-size:130px;line-height:.88;letter-spacing:-3px;
     font-weight:900;
     background:linear-gradient(135deg,#fff 0%,#fcee0a 50%,#00d8ff 100%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
     filter:drop-shadow(0 4px 30px rgba(252,238,10,.4));
+    transition:all .3s;
   }
-  .hero .desc{font-family:'Share Tech Mono',monospace;font-size:13px;
-    letter-spacing:5px;color:rgba(255,255,255,.8);margin-top:14px;text-transform:uppercase}
+  /* 분할 모드 (factor 다를 때): 가운데 슬래시 + 색 분리 */
+  .v-headline.split{
+    display:flex;align-items:baseline;justify-content:center;gap:24px;
+    background:none;-webkit-background-clip:initial;background-clip:initial;
+    color:#fff;filter:none;
+  }
+  .v-headline.split .seg-tqqq{color:#fcee0a;
+    text-shadow:0 0 24px rgba(252,238,10,.6);
+    filter:drop-shadow(0 4px 24px rgba(252,238,10,.4))}
+  .v-headline.split .seg-soxl{color:#00d8ff;
+    text-shadow:0 0 24px rgba(0,216,255,.6);
+    filter:drop-shadow(0 4px 24px rgba(0,216,255,.4))}
+  .v-headline.split .sep{color:rgba(255,255,255,.35);
+    font-size:90px;font-weight:200;letter-spacing:0;line-height:.88}
+  /* PANIC 강조 */
+  .v-headline.panic{animation:panicPulse 1.6s infinite}
+  @keyframes panicPulse{
+    0%,100%{filter:drop-shadow(0 4px 30px rgba(255,0,60,.4))}
+    50%{filter:drop-shadow(0 4px 50px rgba(255,0,60,.7))}
+  }
+  .v-headline.panic.split .seg-tqqq{color:#ff003c;
+    text-shadow:0 0 28px rgba(255,0,60,.8)}
+  .v-headline.panic.split .seg-soxl{color:#ff8c28;
+    text-shadow:0 0 28px rgba(255,140,40,.8)}
+  /* SKIP 모드 (둘 다 차단) */
+  .v-headline.skip-all{
+    background:none;-webkit-background-clip:initial;background-clip:initial;
+    color:rgba(255,128,149,.85);
+    filter:drop-shadow(0 4px 24px rgba(255,0,60,.35));
+    font-size:110px;letter-spacing:6px;
+  }
+
+  /* sub line: 자산별 amount + MA200 */
+  .v-sub{display:flex;justify-content:center;gap:36px;margin-top:22px;
+    align-items:baseline;flex-wrap:wrap}
+  .v-sub-item{display:flex;align-items:baseline;gap:10px;
+    transition:opacity .3s,filter .3s}
+  .v-sub-item.skip{opacity:.38;filter:saturate(.4)}
+  .v-sub-item .vs-ticker{
+    font-family:'Manrope',sans-serif;font-size:14px;font-weight:900;letter-spacing:3px}
+  .v-sub-item.tqqq .vs-ticker{color:#fcee0a;text-shadow:0 0 12px rgba(252,238,10,.4)}
+  .v-sub-item.soxl .vs-ticker{color:#00d8ff;text-shadow:0 0 12px rgba(0,216,255,.4)}
+  .v-sub-item.skip .vs-ticker{text-shadow:none}
+  .v-sub-item .vs-amount{
+    font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;
+    color:#fff;letter-spacing:1px}
+  .v-sub-item.skip .vs-amount{color:rgba(255,255,255,.35)}
+  .v-sub-item .vs-mark{
+    font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;
+    color:rgba(255,255,255,.5);text-transform:uppercase}
+  .v-sub-item.skip .vs-mark{color:#ff8095}
 
   /* PAIR */
   .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
-  .panel{padding:28px 30px;position:relative;overflow:hidden}
+  .panel{padding:28px 30px;position:relative;overflow:hidden;transition:opacity .3s,filter .3s}
+  .panel.skip{opacity:.42;filter:saturate(.4) blur(.3px)}
+  .panel.skip::after{content:'SKIP TODAY';position:absolute;top:14px;right:14px;
+    font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:700;
+    letter-spacing:3px;color:#ff8095;
+    background:rgba(255,0,60,.18);border:1px solid rgba(255,0,60,.5);
+    padding:4px 10px;border-radius:4px;
+    box-shadow:0 0 12px rgba(255,0,60,.3);z-index:10}
   .panel.tqqq::before{content:'';position:absolute;top:-30%;right:-30%;
     width:60%;height:60%;
     background:radial-gradient(circle,rgba(252,238,10,.4) 0%,transparent 70%);
@@ -223,6 +282,17 @@
     font-family:'Share Tech Mono',monospace;font-size:10px;
     color:rgba(255,255,255,.3);font-weight:700;
     transition:all .25s;
+    position:relative;
+  }
+  .slot-factor{
+    position:absolute;top:1px;right:2px;
+    font-family:'Share Tech Mono',monospace;font-size:7px;
+    font-weight:900;letter-spacing:0;line-height:1;
+    color:#ff003c;
+    text-shadow:0 0 4px rgba(255,0,60,.8);
+    background:rgba(0,0,0,.55);
+    padding:1px 3px;border-radius:3px;
+    border:1px solid rgba(255,0,60,.5);
   }
   .slot.empty{background:rgba(255,255,255,.015);border:1px dashed rgba(255,255,255,.08)}
   .slot.loss-deep{
@@ -253,6 +323,34 @@
     0%,100%{box-shadow:inset 0 0 12px rgba(0,255,136,.5),0 0 16px rgba(0,255,136,.5)}
     50%{box-shadow:inset 0 0 16px rgba(0,255,136,.7),0 0 24px rgba(0,255,136,.8)}
   }
+
+  .cycle-notice{
+    display:flex;align-items:center;gap:14px;
+    padding:12px 16px;margin-bottom:12px;
+    background:linear-gradient(135deg,rgba(0,255,136,.15) 0%,rgba(0,255,136,.05) 100%);
+    border:1px solid rgba(0,255,136,.5);border-radius:10px;
+    box-shadow:inset 0 0 14px rgba(0,255,136,.1),0 0 16px rgba(0,255,136,.2);
+    animation:cyclePulse 2.4s infinite;
+  }
+  @keyframes cyclePulse{
+    0%,100%{box-shadow:inset 0 0 14px rgba(0,255,136,.1),0 0 16px rgba(0,255,136,.2)}
+    50%{box-shadow:inset 0 0 18px rgba(0,255,136,.2),0 0 24px rgba(0,255,136,.4)}
+  }
+  .cycle-notice-icon{
+    font-size:24px;line-height:1;flex-shrink:0;
+    color:#00ff88;text-shadow:0 0 12px rgba(0,255,136,.6);
+  }
+  .cycle-notice-text{
+    flex:1;font-family:'Share Tech Mono',monospace;font-size:11px;
+    line-height:1.5;letter-spacing:1px;color:rgba(255,255,255,.85);
+    text-transform:uppercase;
+  }
+  .cycle-notice-text b{
+    font-family:'Manrope',sans-serif;font-weight:900;font-size:14px;
+    color:#00ff88;text-shadow:0 0 10px rgba(0,255,136,.5);
+    letter-spacing:0;text-transform:none;
+  }
+  .cycle-notice-sub{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1.5px}
 
   .legend-bar{padding:14px 24px;margin-bottom:18px;
     display:flex;justify-content:center;align-items:center;gap:24px;flex-wrap:wrap;
@@ -425,9 +523,20 @@
     </div>
 
     <div class="hero-content">
-      <div class="pre">// daily directive //</div>
-      <div class="verdict">Buy 1.0×</div>
-      <div class="desc">Both vehicles · standard split · no alarms triggered</div>
+      <div class="pre" id="hero-pre">// daily directive · BULL //</div>
+      <div class="v-headline" id="v-headline">1.0×</div>
+      <div class="v-sub" id="v-sub">
+        <div class="v-sub-item tqqq">
+          <span class="vs-ticker">TQQQ</span>
+          <span class="vs-amount">$500</span>
+          <span class="vs-mark">MA200 ✓</span>
+        </div>
+        <div class="v-sub-item soxl">
+          <span class="vs-ticker">SOXL</span>
+          <span class="vs-amount">$333</span>
+          <span class="vs-mark">MA200 ✓</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -445,7 +554,7 @@
         <div class="row"><span class="k">N split</span><span class="v">20</span></div>
         <div class="row"><span class="k">TP1/TP2</span><span class="v">8/30%</span></div>
         <div class="row"><span class="k">SL</span><span class="v">−30%</span></div>
-        <div class="row"><span class="k">MA</span><span class="v">200 ✓</span></div>
+        <div class="row ma-row"><span class="k">MA</span><span class="v ma-status">200 ✓</span></div>
         <div class="row"><span class="k">PANIC×</span><span class="v">5.0</span></div>
         <div class="row"><span class="k">MAX×</span><span class="v">10.0</span></div>
       </div>
@@ -464,7 +573,7 @@
         <div class="row"><span class="k">N split</span><span class="v">30</span></div>
         <div class="row"><span class="k">TP/Trail</span><span class="v">12/2.5%</span></div>
         <div class="row"><span class="k">SL</span><span class="v">−30%</span></div>
-        <div class="row"><span class="k">MA</span><span class="v">200 ✓</span></div>
+        <div class="row ma-row"><span class="k">MA</span><span class="v ma-status">200 ✓</span></div>
         <div class="row"><span class="k">PANIC×</span><span class="v">3.0</span></div>
         <div class="row"><span class="k">MAX×</span><span class="v">5.0</span></div>
       </div>
@@ -627,9 +736,26 @@ const SHEET_ID = '1oZP-hAjvWq3u4q7Fc3oKLRrtJimD5Y-JzCHl9XatTaU';
 const YAHOO_PROXY = '/yahoo';  // Cloudflare Pages Function
 
 const STRATEGY_CONFIG = {
-  TQQQ: { N: 20, TP1: 8, TP2: 30, SL: -30, panicX: 5.0, maxX: 10.0 },
-  SOXL: { N: 30, TP: 12, trail: 2.5, SL: -30, panicX: 3.0, maxX: 5.0 },
-  panicTh: 22, bearTh: 28, maPeriod: 100,
+  // === 자산별 챔피언 config ===
+  TQQQ: {
+    N: 20, TP1: 8, TP2: 30, SL: -30,
+    bullX: 1.0, neutralX: 1.0, bearX: 0.0,  // BEAR 시 매수 안 함
+    panicX: 5.0,    // PANIC 시 5× (target_buy = daily_budget * 5)
+    maxX: 10.0,     // 일일 최대 매수 한도 (cash 충분 시)
+    selfMA: 200,    // 자체 MA200 필터
+  },
+  SOXL: {
+    N: 30, TP: 12, trail: 2.5, SL: -30,
+    bullX: 1.0, neutralX: 1.0, bearX: 0.0,
+    panicX: 3.0,    // SOXL은 변동성 커서 더 보수적 (3×)
+    maxX: 5.0,      // 일일 최대 5×
+    selfMA: 200,
+  },
+  // === 시장 regime 판정 (공통, SPY/VIX 기준) ===
+  panicTh: 22,    // VIX ≥ 22 → PANIC
+  bearTh: 28,     // VIX > 28 또는 SPY<MA → BEAR/NEUTRAL 분기점
+  bullTh: 22,     // VIX < 22 → BULL
+  spyMaPeriod: 100,  // SPY MA100 (regime 판정용)
 };
 
 const NOW_KST = () => {
@@ -663,7 +789,7 @@ async function fetchYahoo(symbol, range = '6mo', interval = '1d') {
 }
 
 // ============================================================
-// 2. Regime 판정
+// 2. Regime 판정 (백테스트 papas_calmar_r7.py determine_regime와 1:1 일치)
 // ============================================================
 
 function calcMA(arr, period) {
@@ -674,17 +800,76 @@ function calcMA(arr, period) {
 
 function determineRegime(spy, vix) {
   const vixNow = vix[vix.length - 1].close;
-  const ma100 = calcMA(spy, STRATEGY_CONFIG.maPeriod);
   const spyNow = spy[spy.length - 1].close;
-  const spyAboveMA = ma100 ? ((spyNow / ma100) - 1) * 100 : 0;
+  const spyMa = calcMA(spy, STRATEGY_CONFIG.spyMaPeriod);
+  const spyAboveMA = spyMa ? ((spyNow / spyMa) - 1) * 100 : 0;
 
-  let regime, factor;
-  if (vixNow >= STRATEGY_CONFIG.bearTh) { regime = 'PANIC'; factor = STRATEGY_CONFIG.TQQQ.maxX; }
-  else if (vixNow >= STRATEGY_CONFIG.panicTh) { regime = 'BEAR'; factor = STRATEGY_CONFIG.TQQQ.panicX; }
-  else if (spyAboveMA < 0) { regime = 'NEUTRAL'; factor = 1.0; }
-  else { regime = 'BULL'; factor = 1.0; }
+  // 백테스트 로직 그대로:
+  // if vix >= panic_th: return 'PANIC'
+  // if spy < spy_ma and vix > bear_th: return 'BEAR'
+  // if spy < spy_ma or vix > bear_th: return 'NEUTRAL'
+  // if vix < bull_th: return 'BULL'
+  // return 'NEUTRAL'
+  let regime;
+  if (vixNow >= STRATEGY_CONFIG.panicTh) {
+    regime = 'PANIC';
+  } else if (spyMa && spyNow < spyMa && vixNow > STRATEGY_CONFIG.bearTh) {
+    regime = 'BEAR';
+  } else if ((spyMa && spyNow < spyMa) || vixNow > STRATEGY_CONFIG.bearTh) {
+    regime = 'NEUTRAL';
+  } else if (vixNow < STRATEGY_CONFIG.bullTh) {
+    regime = 'BULL';
+  } else {
+    regime = 'NEUTRAL';
+  }
 
-  return { regime, factor, vixNow, spyAboveMA, ma100 };
+  return { regime, vixNow, spyAboveMA, spyMa, spyNow };
+}
+
+// regime + ticker → factor 매핑 (백테스트 cfg와 1:1 일치)
+function getFactorForTicker(regime, ticker) {
+  const cfg = STRATEGY_CONFIG[ticker];
+  switch (regime) {
+    case 'BULL':    return cfg.bullX;
+    case 'NEUTRAL': return cfg.neutralX;
+    case 'BEAR':    return cfg.bearX;     // 0 → 매수 안 함
+    case 'PANIC':   return cfg.panicX;    // TQQQ 5×, SOXL 3×
+    default:        return 1.0;
+  }
+}
+
+// 자산별 매수 신호 결정 (regime + 자체 MA200 필터)
+// 백테스트:
+//   target_buy = daily_budget * factor
+//   if ma_col is not None and (np.isnan(ma) or price <= ma):
+//       target_buy = 0
+//   actual_buy = min(target_buy, cash, max_daily_buy)
+function determineTickerSignal(regime, ticker, prices) {
+  const cfg = STRATEGY_CONFIG[ticker];
+  const factor = getFactorForTicker(regime, ticker);
+  const priceNow = prices[prices.length - 1].close;
+  const selfMa = calcMA(prices, cfg.selfMA);
+  const maPass = selfMa ? priceNow > selfMa : false;
+  const priceVsMA = selfMa ? ((priceNow / selfMa) - 1) * 100 : 0;
+
+  // 매수 차단 사유 우선순위:
+  // 1. factor=0 (BEAR regime)
+  // 2. MA200 미통과 (price <= MA)
+  let canBuy = true;
+  let skipReason = null;
+  if (factor === 0) {
+    canBuy = false;
+    skipReason = 'BEAR · no buy';
+  } else if (!maPass) {
+    canBuy = false;
+    skipReason = 'below MA200';
+  }
+
+  return {
+    factor, maPass, priceVsMA, selfMa, priceNow,
+    canBuy, skipReason,
+    effectiveFactor: canBuy ? factor : 0,
+  };
 }
 
 // ============================================================
@@ -786,20 +971,42 @@ function buildSlotMap(trades, currentPrice, ticker) {
   for (let i = 1; i <= N; i++) {
     const t = cycleTrades.find(tr => tr.slot_id === i && tr.status === 'OPEN');
     if (!t) {
-      slots.push({ slot_id: i, status: 'empty', returnPct: null, label: '·', title: '' });
+      slots.push({ slot_id: i, status: 'empty', returnPct: null, label: '·', title: '', factor: null });
     } else {
       const ret = ((currentPrice / t.entry_price) - 1) * 100;
       const cls = classifySlot(ret, tpTh);
+      const f = t.entry_factor || 1.0;
+      const factorText = f > 1.05 ? (f >= 9.5 ? '10×' : f >= 4.5 ? '5×' : `${f.toFixed(1)}×`) : null;
       slots.push({
         slot_id: i, status: cls, returnPct: ret,
         label: ret >= 0 ? `+${Math.round(ret)}` : `${Math.round(ret)}`,
-        title: `Slot ${i} · entry $${t.entry_price.toFixed(2)} · now $${currentPrice.toFixed(2)} · ${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%`,
+        title: `Slot ${i} · entry $${t.entry_price.toFixed(2)} · qty ${t.qty.toFixed(4)} · amount $${t.entry_amount.toFixed(2)} · factor ${f}× · now $${currentPrice.toFixed(2)} · ${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%`,
+        factor: f,
+        factorText: factorText,
       });
     }
   }
   const active = slots.filter(s => s.status !== 'empty').length;
   const tpReady = slots.filter(s => s.status === 'tp-ready').length;
-  return { slots, active, tpReady, N };
+
+  // 사이클 종료 감지: 현재 cycle에 행이 있으면서 모두 CLOSED
+  const cycleHasTrades = cycleTrades.length > 0;
+  const allClosed = cycleHasTrades && cycleTrades.every(t => t.status === 'CLOSED');
+  const cycleComplete = allClosed;
+  const nextCycle = cycleComplete ? latestCycle + 1 : null;
+
+  // 사이클 통계 (이번 사이클의 총 슬롯/청산수)
+  const cycleSlotCount = cycleTrades.length;
+  const cycleClosedCount = cycleTrades.filter(t => t.status === 'CLOSED').length;
+
+  return {
+    slots, active, tpReady, N,
+    currentCycle: latestCycle,
+    cycleComplete,
+    nextCycle,
+    cycleSlotCount,
+    cycleClosedCount,
+  };
 }
 
 // ============================================================
@@ -979,24 +1186,85 @@ function renderStatus(regimeData, totalCash, slotsTQQQ, slotsSOXL) {
   if (stats[4]) stats[4].querySelector('.v').textContent = `${slotsTQQQ}·${slotsSOXL}`;
 }
 
-function renderHero(equity, daysSinceStart, regimeData, livePrices) {
-  const verdict = document.querySelector('.hero .verdict');
-  const desc = document.querySelector('.hero .desc');
+function renderHero(equity, daysSinceStart, regimeData, sigTQQQ, sigSOXL) {
   const legend = document.querySelector('.hero-legend');
   const modeBadge = document.querySelector('.mode-badge');
   const axis = document.querySelector('.hero-axis');
   const chart = document.querySelector('.hero-chart svg');
 
-  const factor = regimeData.factor;
-  const factorText = factor === 1.0 ? '1.0×' : `${factor}×`;
-  if (verdict) verdict.textContent = `Buy ${factorText}`;
+  // ─────── verdict 동적 렌더링 ───────
+  const pre = document.getElementById('hero-pre');
+  const headline = document.getElementById('v-headline');
 
-  let descText;
-  if (regimeData.regime === 'PANIC') descText = `PANIC regime · deploy ${factorText} aggressively`;
-  else if (regimeData.regime === 'BEAR') descText = `BEAR regime · careful · deploy ${factorText}`;
-  else descText = `${regimeData.regime} · standard split · no alarms`;
-  if (desc) desc.textContent = descText;
+  const fmtFactor = (f) => {
+    if (f === 1.0) return '1.0×';
+    if (f >= 5) return `${f.toFixed(0)}×`;
+    return `${f.toFixed(1)}×`;
+  };
+  const fmtMoney = (n) => n >= 1000 ? `$${Math.round(n).toLocaleString()}` : `$${n.toFixed(0)}`;
 
+  const tFactor = sigTQQQ.effectiveFactor;
+  const sFactor = sigSOXL.effectiveFactor;
+  const tCanBuy = sigTQQQ.canBuy;
+  const sCanBuy = sigSOXL.canBuy;
+  const bothSkip = !tCanBuy && !sCanBuy;
+  const anyPanic = regimeData.regime === 'PANIC';
+
+  // pre 텍스트
+  if (pre) {
+    pre.textContent = `// daily directive · ${regimeData.regime} //`;
+  }
+
+  // headline 결정
+  if (headline) {
+    headline.classList.remove('split', 'panic', 'skip-all');
+
+    if (bothSkip) {
+      // 둘 다 SKIP → 큰 SKIP
+      headline.textContent = 'SKIP';
+      headline.classList.add('skip-all');
+    } else if (tCanBuy && sCanBuy && tFactor !== sFactor) {
+      // 둘 다 매수 + factor 다름 → 분할 표시 (PANIC 시)
+      headline.innerHTML = `
+        <span class="seg-tqqq">${fmtFactor(tFactor)}</span>
+        <span class="sep">/</span>
+        <span class="seg-soxl">${fmtFactor(sFactor)}</span>
+      `;
+      headline.classList.add('split');
+      if (anyPanic) headline.classList.add('panic');
+    } else if (tCanBuy && sCanBuy) {
+      // 둘 다 매수 + factor 동일 → 통합 큰 텍스트
+      headline.textContent = fmtFactor(tFactor);
+      if (anyPanic) headline.classList.add('panic');
+    } else {
+      // 한쪽만 매수 → 활성 자산 factor 큰 텍스트
+      const activeFactor = tCanBuy ? tFactor : sFactor;
+      headline.textContent = fmtFactor(activeFactor);
+      if (anyPanic) headline.classList.add('panic');
+    }
+  }
+
+  // sub line (자산별 amount + MA200)
+  const renderSubItem = (sel, sig, dailyBudget) => {
+    const item = document.querySelector(sel);
+    if (!item) return;
+    const amountEl = item.querySelector('.vs-amount');
+    const markEl = item.querySelector('.vs-mark');
+    if (sig.canBuy) {
+      item.classList.remove('skip');
+      const amt = dailyBudget * sig.factor;
+      if (amountEl) amountEl.textContent = fmtMoney(amt);
+      if (markEl) markEl.textContent = `MA200 ${sig.maPass ? '✓' : '✗'}`;
+    } else {
+      item.classList.add('skip');
+      if (amountEl) amountEl.textContent = '— SKIP —';
+      if (markEl) markEl.textContent = sig.skipReason || 'no buy';
+    }
+  };
+  renderSubItem('.v-sub-item.tqqq', sigTQQQ, 500);
+  renderSubItem('.v-sub-item.soxl', sigSOXL, 333.33);
+
+  // ─────── 이하 차트/legend는 기존과 동일 ───────
   if (legend) {
     const stratClass = equity.strategyReturn >= 0 ? 'win' : 'loss';
     const bhClass = equity.bhReturn >= 0 ? 'win' : 'loss';
@@ -1041,19 +1309,61 @@ function renderHero(equity, daysSinceStart, regimeData, livePrices) {
   }
 }
 
-function renderPanels(currentTQQQ, currentSOXL, regimeData) {
-  const factor = regimeData.factor;
-  const tqqqDeploy = 500 * factor;
-  const soxlDeploy = 333.33 * factor;
+function renderPanels(currentTQQQ, currentSOXL, regimeData, slotsTQQQ, slotsSOXL, tqqqTrades, soxlTrades, sigTQQQ, sigSOXL) {
   const panels = document.querySelectorAll('.panel');
-  if (panels[0]) {
-    const num = panels[0].querySelector('.deploy .num');
-    if (num) num.textContent = `$${tqqqDeploy.toFixed(2)}`;
-  }
-  if (panels[1]) {
-    const num = panels[1].querySelector('.deploy .num');
-    if (num) num.textContent = `$${soxlDeploy.toFixed(2)}`;
-  }
+
+  // 사이클별 시작일 → 오늘까지 경과일
+  const today = NOW_KST();
+  const cycleDayLabel = (slotData, trades) => {
+    const cycleTrades = trades.filter(t => t.cycle === slotData.currentCycle && t.entry_date);
+    if (cycleTrades.length === 0) return `cycle ${slotData.currentCycle} · day 0`;
+    const startDate = cycleTrades.reduce((min, t) => {
+      const d = new Date(t.entry_date);
+      return (!min || d < min) ? d : min;
+    }, null);
+    const days = Math.max(0, Math.floor((today - startDate) / 86400000));
+    return `cycle ${slotData.currentCycle} · day ${days}`;
+  };
+
+  const updatePanel = (panel, sig, dailyBudget, slotData, trades, vehicleLabel, vehicleSubLabel) => {
+    if (!panel) return;
+
+    // SKIP 클래스 토글
+    if (sig.canBuy) panel.classList.remove('skip');
+    else panel.classList.add('skip');
+
+    // deploy 금액
+    const num = panel.querySelector('.deploy .num');
+    if (num) {
+      if (sig.canBuy) {
+        const amt = dailyBudget * sig.factor;
+        num.textContent = `$${amt.toFixed(amt >= 1000 ? 0 : 2)}`;
+      } else {
+        num.textContent = '— SKIP —';
+      }
+    }
+
+    // ID 영역 (cycle · day N 자동)
+    const idEl = panel.querySelector('.id');
+    if (idEl) {
+      idEl.innerHTML = `${vehicleLabel}<br>${vehicleSubLabel}<br>${cycleDayLabel(slotData, trades)}`;
+    }
+
+    // MA200 상태 행
+    const maStatus = panel.querySelector('.ma-status');
+    if (maStatus) {
+      if (sig.maPass) {
+        maStatus.textContent = `200 ✓`;
+        maStatus.style.color = '#00ff88';
+      } else {
+        maStatus.textContent = `200 ✗`;
+        maStatus.style.color = '#ff8095';
+      }
+    }
+  };
+
+  updatePanel(panels[0], sigTQQQ, 500, slotsTQQQ, tqqqTrades, 'α &middot; vehicle 01', 'nasdaq-100 · 3× lev');
+  updatePanel(panels[1], sigSOXL, 333.33, slotsSOXL, soxlTrades, 'β &middot; vehicle 02', 'semiconductors · 3× lev');
 }
 
 function renderSlotMap(containerSel, slotData) {
@@ -1061,11 +1371,43 @@ function renderSlotMap(containerSel, slotData) {
   if (!container) return;
   const slotsEl = container.querySelector('.slots');
   const stats = container.querySelector('.slot-header .stats');
-  if (slotsEl) {
-    slotsEl.innerHTML = slotData.slots.map(s =>
-      `<div class="slot ${s.status}" title="${s.title}">${s.label}</div>`
-    ).join('');
+  const titleLabelEl = container.querySelector('.slot-header .title .label');
+
+  // 사이클 라벨 업데이트
+  if (titleLabelEl) {
+    titleLabelEl.textContent = `cycle ${slotData.currentCycle} · slot map · N=${slotData.N}`;
   }
+
+  if (slotsEl) {
+    slotsEl.innerHTML = slotData.slots.map(s => {
+      const factorBadge = s.factorText
+        ? `<span class="slot-factor">${s.factorText}</span>`
+        : '';
+      return `<div class="slot ${s.status}" title="${s.title}">${s.label}${factorBadge}</div>`;
+    }).join('');
+  }
+
+  // 사이클 종료 노티 박스 처리
+  let cycleNotice = container.querySelector('.cycle-notice');
+  if (slotData.cycleComplete) {
+    if (!cycleNotice) {
+      cycleNotice = document.createElement('div');
+      cycleNotice.className = 'cycle-notice';
+      // .slots 위에 삽입
+      slotsEl.parentNode.insertBefore(cycleNotice, slotsEl);
+    }
+    cycleNotice.innerHTML = `
+      <span class="cycle-notice-icon">⚓</span>
+      <span class="cycle-notice-text">
+        <b>Cycle ${slotData.currentCycle} complete</b>
+        <br>
+        <span class="cycle-notice-sub">${slotData.cycleSlotCount} slots · all closed · next entry → cycle ${slotData.nextCycle}, slot 1</span>
+      </span>
+    `;
+  } else if (cycleNotice) {
+    cycleNotice.remove();
+  }
+
   if (stats) {
     stats.innerHTML = `
       <span><b>${slotData.active}</b>active</span>
@@ -1121,11 +1463,12 @@ async function loadDashboard() {
     renderClock();
     setInterval(renderClock, 1000);
 
+    // 1y로 받아야 MA200 계산 가능 (6mo는 ~126거래일이라 부족)
     const [spy, vix, tqqqPrices, soxlPrices, tqqqRows, soxlRows] = await Promise.all([
       fetchYahoo('SPY', '1y'),
       fetchYahoo('^VIX', '6mo'),
-      fetchYahoo('TQQQ', '6mo'),
-      fetchYahoo('SOXL', '6mo'),
+      fetchYahoo('TQQQ', '1y'),
+      fetchYahoo('SOXL', '1y'),
       fetchSheet('TQQQ').catch(() => []),
       fetchSheet('SOXL').catch(() => []),
     ]);
@@ -1137,6 +1480,24 @@ async function loadDashboard() {
     const currentTQQQ = tqqqPrices[tqqqPrices.length - 1].close;
     const currentSOXL = soxlPrices[soxlPrices.length - 1].close;
 
+    // 자산별 매수 신호 (regime + 자체 MA200 필터 + factor)
+    const sigTQQQ = determineTickerSignal(regimeData.regime, 'TQQQ', tqqqPrices);
+    const sigSOXL = determineTickerSignal(regimeData.regime, 'SOXL', soxlPrices);
+
+    // 콘솔 디버그 출력 (정후님이 매일 확인 가능)
+    console.log('═════════ KEEL Daily Signal ═════════');
+    console.log(`Date (KST): ${NOW_KST().toISOString()}`);
+    console.log(`VIX: ${regimeData.vixNow.toFixed(2)} (panicTh=${STRATEGY_CONFIG.panicTh}, bearTh=${STRATEGY_CONFIG.bearTh})`);
+    console.log(`SPY: $${regimeData.spyNow.toFixed(2)} vs MA${STRATEGY_CONFIG.spyMaPeriod}=$${regimeData.spyMa?.toFixed(2)} (${regimeData.spyAboveMA >= 0 ? '+' : ''}${regimeData.spyAboveMA.toFixed(2)}%)`);
+    console.log(`Regime: ${regimeData.regime}`);
+    console.log(`─── TQQQ ───`);
+    console.log(`  Price: $${sigTQQQ.priceNow.toFixed(2)} vs MA200=$${sigTQQQ.selfMa?.toFixed(2)} (${sigTQQQ.priceVsMA >= 0 ? '+' : ''}${sigTQQQ.priceVsMA.toFixed(2)}%)`);
+    console.log(`  Factor: ${sigTQQQ.factor}× | MA200 pass: ${sigTQQQ.maPass} | Buy: ${sigTQQQ.canBuy}${sigTQQQ.skipReason ? ' (' + sigTQQQ.skipReason + ')' : ''}`);
+    console.log(`─── SOXL ───`);
+    console.log(`  Price: $${sigSOXL.priceNow.toFixed(2)} vs MA200=$${sigSOXL.selfMa?.toFixed(2)} (${sigSOXL.priceVsMA >= 0 ? '+' : ''}${sigSOXL.priceVsMA.toFixed(2)}%)`);
+    console.log(`  Factor: ${sigSOXL.factor}× | MA200 pass: ${sigSOXL.maPass} | Buy: ${sigSOXL.canBuy}${sigSOXL.skipReason ? ' (' + sigSOXL.skipReason + ')' : ''}`);
+    console.log('═════════════════════════════════════');
+
     const slotsTQQQ = buildSlotMap(tqqqTrades, currentTQQQ, 'TQQQ');
     const slotsSOXL = buildSlotMap(soxlTrades, currentSOXL, 'SOXL');
 
@@ -1147,8 +1508,8 @@ async function loadDashboard() {
     const histSOXL = buildHistogram(soxlTrades);
 
     renderStatus(regimeData, totalCash, slotsTQQQ.active, slotsSOXL.active);
-    renderHero(equity, equity.daysSinceStart, regimeData, { tqqq: currentTQQQ, soxl: currentSOXL });
-    renderPanels(currentTQQQ, currentSOXL, regimeData);
+    renderHero(equity, equity.daysSinceStart, regimeData, sigTQQQ, sigSOXL);
+    renderPanels(currentTQQQ, currentSOXL, regimeData, slotsTQQQ, slotsSOXL, tqqqTrades, soxlTrades, sigTQQQ, sigSOXL);
     renderSlotMap('.slot-card.tqqq', slotsTQQQ);
     renderSlotMap('.slot-card.soxl', slotsSOXL);
     renderHistogram('.histo-card.tqqq', histTQQQ, 'TQQQ');
