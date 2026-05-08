@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>KEEL — Final</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#0a0908;color:#fff;font-family:'Manrope',sans-serif;font-weight:400;
+    min-height:100vh;padding:30px 20px;position:relative;overflow-x:hidden;
+  }
+  body::before{content:'';position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(ellipse at 15% 15%,rgba(252,238,10,.30) 0%,transparent 50%),
+      radial-gradient(ellipse at 85% 85%,rgba(0,216,255,.22) 0%,transparent 50%),
+      radial-gradient(ellipse at 60% 50%,rgba(255,0,80,.10) 0%,transparent 60%),
+      #0a0908}
+  body::after{content:'';position:fixed;inset:0;z-index:-1;
+    backdrop-filter:blur(80px);background:rgba(10,9,8,.5)}
+
+  .frame{max-width:1240px;margin:0 auto;position:relative;z-index:1}
+
+  .glass{
+    background:rgba(255,255,255,.05);
+    backdrop-filter:blur(40px) saturate(180%);
+    -webkit-backdrop-filter:blur(40px) saturate(180%);
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.10);
+    border-radius:20px;
+  }
+
+  /* HEADER */
+  .header{display:flex;justify-content:space-between;align-items:center;
+    padding:20px 30px;margin-bottom:18px}
+  .header h1{
+    font-family:'Manrope',sans-serif;font-weight:900;font-size:36px;
+    letter-spacing:-.5px;line-height:1;
+    background:linear-gradient(135deg,#fff 0%,#fcee0a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .header h1 em{font-style:normal;color:#0a0908;
+    background:#fcee0a;padding:2px 12px;border-radius:8px;display:inline-block;
+    -webkit-text-fill-color:#0a0908;font-weight:900}
+  .header .clock{font-family:'Share Tech Mono',monospace;text-align:right;
+    font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.6);text-transform:uppercase}
+  .header .clock b{display:block;font-size:24px;font-weight:700;color:#fcee0a;
+    letter-spacing:1px;font-variant-numeric:tabular-nums;
+    text-shadow:0 0 14px rgba(252,238,10,.4);font-family:'Manrope',sans-serif}
+
+  .status{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+  .stat{padding:14px 18px;display:flex;align-items:center;gap:12px}
+  .stat .lbl{font-family:'Share Tech Mono',monospace;font-size:10px;
+    letter-spacing:2px;color:rgba(255,255,255,.5);text-transform:uppercase}
+  .stat .v{font-weight:900;font-size:22px;color:#fff;letter-spacing:-.5px;line-height:1;flex:1;text-align:right}
+  .stat .v.ok{
+    background:linear-gradient(135deg,#fcee0a 0%,#00ff88 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat .v.cyan{color:#00d8ff}
+  .stat .dot{width:8px;height:8px;border-radius:50%;background:#00ff88;
+    box-shadow:0 0 10px #00ff88;flex-shrink:0;animation:p 2s infinite}
+  @keyframes p{50%{opacity:.4}}
+
+  /* ★ HERO with 5-A ZOOM chart background ★ */
+  .hero{
+    padding:60px 50px;margin-bottom:18px;position:relative;overflow:hidden;
+    min-height:300px;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .hero-glow{position:absolute;inset:0;
+    background:radial-gradient(ellipse at center,rgba(252,238,10,.15) 0%,transparent 70%);
+    pointer-events:none;z-index:2}
+
+  .hero-chart{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+  .hero-chart svg{width:100%;height:100%;display:block}
+
+  .hero-legend{position:absolute;top:18px;left:24px;z-index:4;
+    display:flex;gap:14px;align-items:center;
+    font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;
+    color:rgba(255,255,255,.6);text-transform:uppercase}
+  .hero-legend-item{display:flex;align-items:center;gap:5px}
+  .hero-legend-item .swatch{width:14px;border-radius:1px}
+  .hero-legend-item .swatch.bh{background:none;height:0;border-top:2px dashed rgba(255,255,255,.7);
+    box-shadow:0 0 4px rgba(255,255,255,.3)}
+  .hero-legend-item .swatch.eq{background:linear-gradient(90deg,rgba(0,255,136,.5),rgba(0,255,136,.9));
+    box-shadow:0 0 6px rgba(0,255,136,.6);height:6px;border-radius:2px}
+
+  .return-badge{
+    display:inline-block;font-family:'Manrope',sans-serif;font-weight:900;
+    font-size:11px;letter-spacing:0;padding:1px 6px;border-radius:4px;margin-left:4px;
+  }
+  .return-badge.win{background:rgba(0,255,136,.2);color:#00ff88;border:1px solid rgba(0,255,136,.5)}
+  .return-badge.flat{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3)}
+  .return-badge.loss{background:rgba(255,0,60,.15);color:#ff8095;border:1px solid rgba(255,0,60,.5)}
+
+  /* MODE BADGE */
+  .mode-badge{
+    position:absolute;top:18px;right:24px;z-index:4;
+    display:flex;align-items:center;gap:6px;
+    font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;
+    color:rgba(255,255,255,.7);text-transform:uppercase;
+    background:rgba(0,0,0,.4);padding:5px 12px;border-radius:14px;
+    border:1px solid rgba(255,255,255,.15);
+  }
+  .mode-badge .seg.live{color:#00ff88;text-shadow:0 0 6px rgba(0,255,136,.5)}
+  .mode-badge .dot{width:6px;height:6px;border-radius:50%;
+    background:#00ff88;box-shadow:0 0 8px #00ff88;animation:p 2s infinite}
+  .mode-badge .sep{color:rgba(255,255,255,.3)}
+
+  .hero-axis{position:absolute;bottom:14px;left:24px;right:24px;z-index:4;
+    display:flex;justify-content:space-between;
+    font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;
+    color:rgba(255,255,255,.4);text-transform:uppercase;pointer-events:none}
+
+  .hero-content{position:relative;z-index:5;text-align:center}
+  .hero .pre{font-family:'Share Tech Mono',monospace;font-size:11px;
+    letter-spacing:6px;color:rgba(255,255,255,.7);text-transform:uppercase;margin-bottom:14px}
+  .hero .verdict{
+    font-family:'Manrope',sans-serif;font-size:140px;line-height:.9;letter-spacing:-3px;
+    font-weight:900;
+    background:linear-gradient(135deg,#fff 0%,#fcee0a 50%,#00d8ff 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 4px 30px rgba(252,238,10,.4));
+  }
+  .hero .desc{font-family:'Share Tech Mono',monospace;font-size:13px;
+    letter-spacing:5px;color:rgba(255,255,255,.8);margin-top:14px;text-transform:uppercase}
+
+  /* PAIR */
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .panel{padding:28px 30px;position:relative;overflow:hidden}
+  .panel.tqqq::before{content:'';position:absolute;top:-30%;right:-30%;
+    width:60%;height:60%;
+    background:radial-gradient(circle,rgba(252,238,10,.4) 0%,transparent 70%);
+    border-radius:50%;pointer-events:none}
+  .panel.soxl::before{content:'';position:absolute;top:-30%;right:-30%;
+    width:60%;height:60%;
+    background:radial-gradient(circle,rgba(0,216,255,.4) 0%,transparent 70%);
+    border-radius:50%;pointer-events:none}
+
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:14px;margin-bottom:18px;position:relative}
+  .panel-head h2{
+    font-family:'Manrope',sans-serif;font-size:48px;font-weight:900;
+    line-height:.9;letter-spacing:-1px;color:#fff;
+  }
+  .panel.tqqq .panel-head h2{
+    background:linear-gradient(135deg,#fff 0%,#fcee0a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .panel.soxl .panel-head h2{
+    background:linear-gradient(135deg,#fff 0%,#00d8ff 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .panel-head .id{text-align:right;font-family:'Share Tech Mono',monospace;
+    font-size:11px;color:rgba(255,255,255,.6);letter-spacing:2px;
+    text-transform:uppercase;line-height:1.5}
+
+  .deploy{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;margin-bottom:18px;
+    background:rgba(0,0,0,.35);border-radius:12px;
+    border:1px solid rgba(255,255,255,.08);position:relative;
+  }
+  .deploy .pre{font-family:'Share Tech Mono',monospace;font-size:10px;
+    letter-spacing:4px;color:rgba(255,255,255,.6);text-transform:uppercase}
+  .deploy .num{font-family:'Manrope',sans-serif;font-size:36px;
+    font-weight:900;letter-spacing:-1px;color:#fff;line-height:1}
+  .panel.tqqq .deploy .num{
+    background:linear-gradient(135deg,#fff 0%,#fcee0a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .panel.soxl .deploy .num{
+    background:linear-gradient(135deg,#fff 0%,#00d8ff 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .params{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;
+    font-size:14px;position:relative}
+  .params .row{display:flex;justify-content:space-between;
+    padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+  .params .k{font-family:'Share Tech Mono',monospace;font-size:10px;
+    color:rgba(255,255,255,.5);letter-spacing:1px;text-transform:uppercase;align-self:center}
+  .params .v{font-weight:800;color:#fff;letter-spacing:.5px}
+
+  /* SLOT MAPS */
+  .slot-maps{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .slot-card{padding:24px 28px;position:relative;overflow:hidden}
+  .slot-card.tqqq::before{content:'';position:absolute;top:-50%;left:-20%;
+    width:50%;height:80%;
+    background:radial-gradient(circle,rgba(252,238,10,.25) 0%,transparent 70%);
+    border-radius:50%;pointer-events:none;filter:blur(20px)}
+  .slot-card.soxl::before{content:'';position:absolute;top:-50%;left:-20%;
+    width:50%;height:80%;
+    background:radial-gradient(circle,rgba(0,216,255,.25) 0%,transparent 70%);
+    border-radius:50%;pointer-events:none;filter:blur(20px)}
+
+  .slot-header{display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:14px;position:relative}
+  .slot-header .title{display:flex;align-items:baseline;gap:10px}
+  .slot-header .title .ticker{font-family:'Manrope',sans-serif;font-weight:900;
+    font-size:22px;letter-spacing:-.5px;line-height:1}
+  .slot-card.tqqq .slot-header .title .ticker{color:#fcee0a}
+  .slot-card.soxl .slot-header .title .ticker{color:#00d8ff}
+  .slot-header .title .label{font-family:'Share Tech Mono',monospace;
+    font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.6);text-transform:uppercase}
+
+  .slot-header .stats{display:flex;gap:20px;align-items:center;
+    font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;
+    color:rgba(255,255,255,.7);text-transform:uppercase}
+  .slot-header .stats b{font-family:'Manrope',sans-serif;font-weight:900;
+    color:#fff;font-size:14px;letter-spacing:0;margin-right:4px}
+  .slot-header .stats .ready b{color:#00ff88;text-shadow:0 0 12px rgba(0,255,136,.5)}
+
+  .slots{
+    display:grid;gap:6px;padding:14px;border-radius:12px;
+    background:rgba(0,0,0,.35);
+    border:1px solid rgba(255,255,255,.06);
+    position:relative;
+    grid-template-columns:repeat(10,1fr);
+  }
+
+  .slot{
+    aspect-ratio:1;border-radius:5px;
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.03);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Share Tech Mono',monospace;font-size:10px;
+    color:rgba(255,255,255,.3);font-weight:700;
+    transition:all .25s;
+  }
+  .slot.empty{background:rgba(255,255,255,.015);border:1px dashed rgba(255,255,255,.08)}
+  .slot.loss-deep{
+    background:linear-gradient(135deg,rgba(255,0,60,.4) 0%,rgba(255,0,60,.2) 100%);
+    border:1px solid rgba(255,0,60,.7);color:#ff8095;
+    box-shadow:inset 0 0 8px rgba(255,0,60,.3),0 0 6px rgba(255,0,60,.4);
+  }
+  .slot.loss{
+    background:linear-gradient(135deg,rgba(255,140,40,.3) 0%,rgba(255,140,40,.15) 100%);
+    border:1px solid rgba(255,140,40,.6);color:#ffb878;
+  }
+  .slot.flat{
+    background:linear-gradient(135deg,rgba(252,238,10,.18) 0%,rgba(252,238,10,.08) 100%);
+    border:1px solid rgba(252,238,10,.5);color:#fcee0a;
+  }
+  .slot.gain{
+    background:linear-gradient(135deg,rgba(0,216,255,.22) 0%,rgba(0,216,255,.10) 100%);
+    border:1px solid rgba(0,216,255,.7);color:#80e8ff;
+    box-shadow:inset 0 0 6px rgba(0,216,255,.3);
+  }
+  .slot.tp-ready{
+    background:linear-gradient(135deg,rgba(0,255,136,.4) 0%,rgba(0,255,136,.2) 100%);
+    border:1px solid #00ff88;color:#80ffb8;
+    box-shadow:inset 0 0 12px rgba(0,255,136,.5),0 0 16px rgba(0,255,136,.5);
+    animation:pulse 1.6s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:inset 0 0 12px rgba(0,255,136,.5),0 0 16px rgba(0,255,136,.5)}
+    50%{box-shadow:inset 0 0 16px rgba(0,255,136,.7),0 0 24px rgba(0,255,136,.8)}
+  }
+
+  .legend-bar{padding:14px 24px;margin-bottom:18px;
+    display:flex;justify-content:center;align-items:center;gap:24px;flex-wrap:wrap;
+    font-family:'Share Tech Mono',monospace;font-size:10px;
+    color:rgba(255,255,255,.6);letter-spacing:1px;text-transform:uppercase;
+  }
+  .legend-item{display:flex;align-items:center;gap:6px}
+  .legend-dot{width:12px;height:12px;border-radius:3px;border:1px solid;flex-shrink:0}
+  .legend-dot.empty{border-style:dashed;border-color:rgba(255,255,255,.3)}
+  .legend-dot.loss-deep{background:rgba(255,0,60,.4);border-color:#ff003c}
+  .legend-dot.loss{background:rgba(255,140,40,.3);border-color:#ff8c28}
+  .legend-dot.flat{background:rgba(252,238,10,.2);border-color:#fcee0a}
+  .legend-dot.gain{background:rgba(0,216,255,.25);border-color:#00d8ff}
+  .legend-dot.tp{background:rgba(0,255,136,.4);border-color:#00ff88;
+    box-shadow:0 0 8px rgba(0,255,136,.5)}
+
+  .histos{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .histo-card{padding:24px 28px;position:relative;overflow:hidden}
+  .histo-card.tqqq::before{content:'';position:absolute;bottom:-50%;right:-20%;
+    width:50%;height:80%;
+    background:radial-gradient(circle,rgba(252,238,10,.18) 0%,transparent 70%);
+    border-radius:50%;pointer-events:none;filter:blur(20px)}
+  .histo-card.soxl::before{content:'';position:absolute;bottom:-50%;right:-20%;
+    width:50%;height:80%;
+    background:radial-gradient(circle,rgba(0,216,255,.18) 0%,transparent 70%);
+    border-radius:50%;pointer-events:none;filter:blur(20px)}
+
+  .histo-header{display:flex;justify-content:space-between;align-items:flex-end;
+    margin-bottom:18px;position:relative;
+    padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .histo-header .title{display:flex;align-items:baseline;gap:10px}
+  .histo-header .title .ticker{font-family:'Manrope',sans-serif;font-weight:900;
+    font-size:22px;letter-spacing:-.5px;line-height:1}
+  .histo-card.tqqq .histo-header .title .ticker{color:#fcee0a}
+  .histo-card.soxl .histo-header .title .ticker{color:#00d8ff}
+  .histo-header .title .label{font-family:'Share Tech Mono',monospace;
+    font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.6);text-transform:uppercase}
+
+  .histo-summary{display:flex;gap:18px;align-items:center;
+    font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;
+    color:rgba(255,255,255,.7);text-transform:uppercase}
+  .histo-summary .item{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  .histo-summary .item .num{font-family:'Manrope',sans-serif;font-weight:900;
+    color:#fff;font-size:18px;letter-spacing:-.5px;line-height:1}
+  .histo-summary .item.win .num{color:#00ff88;text-shadow:0 0 10px rgba(0,255,136,.4)}
+  .histo-summary .item.loss .num{color:#ff8095;text-shadow:0 0 10px rgba(255,0,60,.4)}
+
+  .histo-chart{position:relative;height:180px;
+    background:rgba(0,0,0,.35);border-radius:12px;
+    border:1px solid rgba(255,255,255,.06);
+    padding:18px 14px 28px 14px}
+  .histo-chart .zero-line{position:absolute;top:18px;bottom:28px;width:1px;
+    background:rgba(255,255,255,.4)}
+  .histo-chart .zero-line::before{content:'0';position:absolute;bottom:-22px;left:50%;
+    transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:9px;
+    color:rgba(255,255,255,.6);letter-spacing:1px}
+
+  .histo-bars{height:100%;display:flex;align-items:flex-end;justify-content:space-between;
+    gap:2px;position:relative}
+  .histo-bar{flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:flex-end;position:relative}
+  .histo-bar .bar{width:100%;border-radius:3px 3px 0 0;position:relative;transition:all .25s}
+  .histo-bar .count-label{position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+    font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;
+    color:rgba(255,255,255,.7);font-weight:700}
+  .histo-bar .x-label{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+    font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0;
+    color:rgba(255,255,255,.45);white-space:nowrap}
+
+  .histo-bar.loss-deep .bar{
+    background:linear-gradient(180deg,rgba(255,0,60,.85) 0%,rgba(255,0,60,.4) 100%);
+    border:1px solid rgba(255,0,60,.8);border-bottom:0;
+    box-shadow:0 0 10px rgba(255,0,60,.4)}
+  .histo-bar.loss .bar{
+    background:linear-gradient(180deg,rgba(255,140,40,.85) 0%,rgba(255,140,40,.4) 100%);
+    border:1px solid rgba(255,140,40,.7);border-bottom:0;
+    box-shadow:0 0 8px rgba(255,140,40,.3)}
+  .histo-bar.flat .bar{
+    background:linear-gradient(180deg,rgba(252,238,10,.7) 0%,rgba(252,238,10,.3) 100%);
+    border:1px solid rgba(252,238,10,.6);border-bottom:0}
+  .histo-bar.gain-low .bar{
+    background:linear-gradient(180deg,rgba(0,216,255,.75) 0%,rgba(0,216,255,.3) 100%);
+    border:1px solid rgba(0,216,255,.7);border-bottom:0;
+    box-shadow:0 0 8px rgba(0,216,255,.3)}
+  .histo-bar.gain-tp .bar{
+    background:linear-gradient(180deg,rgba(0,255,136,.85) 0%,rgba(0,255,136,.4) 100%);
+    border:1px solid rgba(0,255,136,.85);border-bottom:0;
+    box-shadow:0 0 12px rgba(0,255,136,.5)}
+  .histo-bar.gain-big .bar{
+    background:linear-gradient(180deg,rgba(120,255,180,.9) 0%,rgba(0,255,136,.4) 100%);
+    border:1px solid rgba(120,255,180,.85);border-bottom:0;
+    box-shadow:0 0 14px rgba(120,255,180,.6)}
+
+  .foot{padding:14px 30px;display:flex;justify-content:space-between;
+    font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:3px;
+    color:rgba(255,255,255,.5);text-transform:uppercase}
+  .foot b{color:#fcee0a;font-weight:700}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="header glass">
+    <h1>KEEL <em>3X</em></h1>
+    <div class="clock">
+      <b>14:32:08</b>
+      May 7 · 2026 · KST
+    </div>
+  </div>
+
+  <div class="status">
+    <div class="stat glass">
+      <span class="dot"></span>
+      <span class="lbl">REGIME</span>
+      <span class="v ok">BULL</span>
+    </div>
+    <div class="stat glass"><span class="lbl">VIX</span><span class="v">18.40</span></div>
+    <div class="stat glass"><span class="lbl">SPY/MA</span><span class="v cyan">+2.10%</span></div>
+    <div class="stat glass"><span class="lbl">CASH</span><span class="v">$2,340</span></div>
+    <div class="stat glass"><span class="lbl">SLOTS</span><span class="v">14·22</span></div>
+  </div>
+
+  <!-- ★ HERO with 5-A ZOOM chart background ★ -->
+  <div class="hero glass">
+    <div class="hero-chart">
+      <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00ff88" stop-opacity=".50"/>
+            <stop offset="60%" stop-color="#00ff88" stop-opacity=".18"/>
+            <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="eqGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <pattern id="hgrid" width="100" height="60" patternUnits="userSpaceOnUse">
+            <path d="M 100 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="1000" height="300" fill="url(#hgrid)"/>
+
+        <!-- 5-A ZOOM: 14일 라이브 데이터를 차트 전체 width에 펼침 -->
+        <!-- EQ area + line -->
+        <path d="M0.0,178.9 L71.4,168.5 L142.9,160.2 L214.3,156.1 L285.7,146.7 L357.1,137.5 L428.6,131.5 L500.0,131.3 L571.4,125.6 L642.9,115.3 L714.3,111.7 L785.7,108.1 L857.1,94.2 L928.6,86.7 L1000.0,78.6 L1000.0,300 L0.0,300 Z"
+              fill="url(#eqGrad)"/>
+        <path d="M0.0,178.9 L71.4,168.5 L142.9,160.2 L214.3,156.1 L285.7,146.7 L357.1,137.5 L428.6,131.5 L500.0,131.3 L571.4,125.6 L642.9,115.3 L714.3,111.7 L785.7,108.1 L857.1,94.2 L928.6,86.7 L1000.0,78.6"
+              fill="none" stroke="#00ff88" stroke-width="2.6" stroke-opacity="1" filter="url(#eqGlow)"/>
+
+        <!-- BH benchmark -->
+        <path d="M0.0,178.9 L71.4,187.4 L142.9,170.9 L214.3,155.5 L285.7,130.3 L357.1,122.4 L428.6,137.1 L500.0,161.9 L571.4,127.6 L642.9,185.2 L714.3,194.1 L785.7,215.8 L857.1,207.7 L928.6,215.6 L1000.0,221.4"
+              fill="none" stroke="rgba(255,255,255,.65)" stroke-width="1.8" stroke-dasharray="4 4"/>
+      </svg>
+    </div>
+    <div class="hero-glow"></div>
+
+    <div class="hero-legend">
+      <div class="hero-legend-item"><span class="swatch bh"></span>B&H 50/50 <span class="return-badge loss">−2.7%</span></div>
+      <div class="hero-legend-item"><span class="swatch eq"></span>STRATEGY <span class="return-badge win">+6.3%</span></div>
+    </div>
+
+    <div class="mode-badge">
+      <span class="seg live"><span class="dot"></span>LIVE D+14</span>
+      <span class="sep">·</span>
+      <span style="color:rgba(255,255,255,.5)">14d window</span>
+    </div>
+
+    <div class="hero-axis">
+      <span>D−14 · APR 23</span>
+      <span>D · today</span>
+    </div>
+
+    <div class="hero-content">
+      <div class="pre">// daily directive //</div>
+      <div class="verdict">Buy 1.0×</div>
+      <div class="desc">Both vehicles · standard split · no alarms triggered</div>
+    </div>
+  </div>
+
+  <div class="pair">
+    <div class="panel glass tqqq">
+      <div class="panel-head">
+        <h2>TQQQ</h2>
+        <div class="id">α &middot; vehicle 01<br>nasdaq-100 · 3× lev<br>cycle &middot; day 14</div>
+      </div>
+      <div class="deploy">
+        <span class="pre">>> deploy today</span>
+        <span class="num">$500.00</span>
+      </div>
+      <div class="params">
+        <div class="row"><span class="k">N split</span><span class="v">20</span></div>
+        <div class="row"><span class="k">TP1/TP2</span><span class="v">8/30%</span></div>
+        <div class="row"><span class="k">SL</span><span class="v">−30%</span></div>
+        <div class="row"><span class="k">MA</span><span class="v">200 ✓</span></div>
+        <div class="row"><span class="k">PANIC×</span><span class="v">5.0</span></div>
+        <div class="row"><span class="k">MAX×</span><span class="v">10.0</span></div>
+      </div>
+    </div>
+
+    <div class="panel glass soxl">
+      <div class="panel-head">
+        <h2>SOXL</h2>
+        <div class="id">β &middot; vehicle 02<br>semiconductors · 3× lev<br>cycle &middot; day 22</div>
+      </div>
+      <div class="deploy">
+        <span class="pre">>> deploy today</span>
+        <span class="num">$333.33</span>
+      </div>
+      <div class="params">
+        <div class="row"><span class="k">N split</span><span class="v">30</span></div>
+        <div class="row"><span class="k">TP/Trail</span><span class="v">12/2.5%</span></div>
+        <div class="row"><span class="k">SL</span><span class="v">−30%</span></div>
+        <div class="row"><span class="k">MA</span><span class="v">200 ✓</span></div>
+        <div class="row"><span class="k">PANIC×</span><span class="v">3.0</span></div>
+        <div class="row"><span class="k">MAX×</span><span class="v">5.0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slot-maps">
+    <div class="slot-card glass tqqq">
+      <div class="slot-header">
+        <div class="title">
+          <span class="ticker">TQQQ</span>
+          <span class="label">slot map · N=20</span>
+        </div>
+        <div class="stats">
+          <span><b>14</b>active</span>
+          <span class="ready"><b>1</b>tp ready</span>
+        </div>
+      </div>
+      <div class="slots">
+        <div class="slot tp-ready" title="$60.20 → +9.2%">+9</div>
+        <div class="slot gain">+4</div>
+        <div class="slot gain">+4</div>
+        <div class="slot flat">+0</div>
+        <div class="slot flat">·</div>
+        <div class="slot flat">−1</div>
+        <div class="slot loss">−5</div>
+        <div class="slot loss">−7</div>
+        <div class="slot loss-deep">−10</div>
+        <div class="slot loss-deep">−11</div>
+        <div class="slot loss">−9</div>
+        <div class="slot loss">−7</div>
+        <div class="slot flat">−3</div>
+        <div class="slot flat">−1</div>
+        <div class="slot empty">·</div><div class="slot empty">·</div>
+        <div class="slot empty">·</div><div class="slot empty">·</div>
+        <div class="slot empty">·</div><div class="slot empty">·</div>
+      </div>
+    </div>
+
+    <div class="slot-card glass soxl">
+      <div class="slot-header">
+        <div class="title">
+          <span class="ticker">SOXL</span>
+          <span class="label">slot map · N=30</span>
+        </div>
+        <div class="stats">
+          <span><b>22</b>active</span>
+          <span class="ready"><b>2</b>tp ready</span>
+        </div>
+      </div>
+      <div class="slots">
+        <div class="slot tp-ready">+13</div>
+        <div class="slot tp-ready">+12</div>
+        <div class="slot gain">+8</div>
+        <div class="slot gain">+6</div>
+        <div class="slot gain">+5</div>
+        <div class="slot gain">+3</div>
+        <div class="slot flat">+1</div>
+        <div class="slot flat">+0</div>
+        <div class="slot flat">−1</div>
+        <div class="slot flat">−2</div>
+        <div class="slot loss">−4</div>
+        <div class="slot loss">−5</div>
+        <div class="slot loss">−6</div>
+        <div class="slot loss">−7</div>
+        <div class="slot loss">−8</div>
+        <div class="slot loss-deep">−11</div>
+        <div class="slot loss-deep">−13</div>
+        <div class="slot loss-deep">−14</div>
+        <div class="slot loss">−9</div>
+        <div class="slot loss">−7</div>
+        <div class="slot flat">−3</div>
+        <div class="slot flat">+0</div>
+        <div class="slot empty">·</div><div class="slot empty">·</div>
+        <div class="slot empty">·</div><div class="slot empty">·</div>
+        <div class="slot empty">·</div><div class="slot empty">·</div>
+        <div class="slot empty">·</div><div class="slot empty">·</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend-bar glass">
+    <div class="legend-item"><span class="legend-dot empty"></span>EMPTY</div>
+    <div class="legend-item"><span class="legend-dot loss-deep"></span>≤ −10%</div>
+    <div class="legend-item"><span class="legend-dot loss"></span>−10 ~ 0%</div>
+    <div class="legend-item"><span class="legend-dot flat"></span>±2%</div>
+    <div class="legend-item"><span class="legend-dot gain"></span>+2 ~ TP</div>
+    <div class="legend-item"><span class="legend-dot tp"></span>TP READY</div>
+  </div>
+
+  <div class="histos">
+    <div class="histo-card glass tqqq">
+      <div class="histo-header">
+        <div class="title">
+          <span class="ticker">TQQQ</span>
+          <span class="label">realized P&L · 24 closed cycles</span>
+        </div>
+        <div class="histo-summary">
+          <div class="item win"><span>WINS</span><span class="num">22</span></div>
+          <div class="item loss"><span>LOSSES</span><span class="num">2</span></div>
+          <div class="item"><span>WIN RATE</span><span class="num">91.7%</span></div>
+        </div>
+      </div>
+      <div class="histo-chart">
+        <div class="zero-line" style="left:35%"></div>
+        <div class="histo-bars">
+          <div class="histo-bar loss-deep"><span class="count-label">1</span><div class="bar" style="height:8%"></div><span class="x-label">−30</span></div>
+          <div class="histo-bar loss-deep"><div class="bar" style="height:0%"></div><span class="x-label">−20</span></div>
+          <div class="histo-bar loss"><span class="count-label">1</span><div class="bar" style="height:8%"></div><span class="x-label">−10</span></div>
+          <div class="histo-bar flat"><div class="bar" style="height:0%"></div><span class="x-label">0</span></div>
+          <div class="histo-bar gain-low"><span class="count-label">5</span><div class="bar" style="height:42%"></div><span class="x-label">+5</span></div>
+          <div class="histo-bar gain-tp"><span class="count-label">10</span><div class="bar" style="height:84%"></div><span class="x-label">+10</span></div>
+          <div class="histo-bar gain-tp"><span class="count-label">5</span><div class="bar" style="height:42%"></div><span class="x-label">+15</span></div>
+          <div class="histo-bar gain-big"><span class="count-label">2</span><div class="bar" style="height:18%"></div><span class="x-label">+25</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="histo-card glass soxl">
+      <div class="histo-header">
+        <div class="title">
+          <span class="ticker">SOXL</span>
+          <span class="label">realized P&L · 38 closed cycles</span>
+        </div>
+        <div class="histo-summary">
+          <div class="item win"><span>WINS</span><span class="num">35</span></div>
+          <div class="item loss"><span>LOSSES</span><span class="num">3</span></div>
+          <div class="item"><span>WIN RATE</span><span class="num">92.1%</span></div>
+        </div>
+      </div>
+      <div class="histo-chart">
+        <div class="zero-line" style="left:35%"></div>
+        <div class="histo-bars">
+          <div class="histo-bar loss-deep"><span class="count-label">2</span><div class="bar" style="height:14%"></div><span class="x-label">−30</span></div>
+          <div class="histo-bar loss-deep"><div class="bar" style="height:0%"></div><span class="x-label">−20</span></div>
+          <div class="histo-bar loss"><span class="count-label">1</span><div class="bar" style="height:7%"></div><span class="x-label">−10</span></div>
+          <div class="histo-bar flat"><div class="bar" style="height:0%"></div><span class="x-label">0</span></div>
+          <div class="histo-bar gain-low"><span class="count-label">4</span><div class="bar" style="height:28%"></div><span class="x-label">+5</span></div>
+          <div class="histo-bar gain-tp"><span class="count-label">14</span><div class="bar" style="height:96%"></div><span class="x-label">+10</span></div>
+          <div class="histo-bar gain-tp"><span class="count-label">11</span><div class="bar" style="height:78%"></div><span class="x-label">+15</span></div>
+          <div class="histo-bar gain-big"><span class="count-label">6</span><div class="bar" style="height:42%"></div><span class="x-label">+25</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot glass">
+    <span>KEEL · TQQQ N=20 · SOXL N=30 · 3-period <b>VALIDATED</b></span>
+    <span>next tick · <b>T+22:42</b></span>
+    <span>op · <b>JUNGHOO</b></span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// KEEL Dashboard Logic
+// ============================================================
+
+const SHEET_ID = '1oZP-hAjvWq3u4q7Fc3oKLRrtJimD5Y-JzCHl9XatTaU';
+const YAHOO_PROXY = '/yahoo';  // Cloudflare Pages Function
+
+const STRATEGY_CONFIG = {
+  TQQQ: { N: 20, TP1: 8, TP2: 30, SL: -30, panicX: 5.0, maxX: 10.0 },
+  SOXL: { N: 30, TP: 12, trail: 2.5, SL: -30, panicX: 3.0, maxX: 5.0 },
+  panicTh: 22, bearTh: 28, maPeriod: 100,
+};
+
+const NOW_KST = () => {
+  const d = new Date();
+  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+  return new Date(utc + 9 * 3600000);
+};
+
+// ============================================================
+// 1. Yahoo Finance 가격 fetch
+// ============================================================
+
+async function fetchYahoo(symbol, range = '6mo', interval = '1d') {
+  const url = `${YAHOO_PROXY}?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=${interval}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Yahoo fetch failed: ${symbol}`);
+  const data = await res.json();
+  const result = data.chart?.result?.[0];
+  if (!result) throw new Error(`No data for ${symbol}`);
+  const ts = result.timestamp || [];
+  const closes = result.indicators?.quote?.[0]?.close || [];
+  const adjcloses = result.indicators?.adjclose?.[0]?.adjclose || closes;
+  const out = [];
+  for (let i = 0; i < ts.length; i++) {
+    const c = adjcloses[i] ?? closes[i];
+    if (c != null && !isNaN(c)) {
+      out.push({ date: new Date(ts[i] * 1000), close: c });
+    }
+  }
+  return out;
+}
+
+// ============================================================
+// 2. Regime 판정
+// ============================================================
+
+function calcMA(arr, period) {
+  if (arr.length < period) return null;
+  const slice = arr.slice(-period);
+  return slice.reduce((s, x) => s + x.close, 0) / period;
+}
+
+function determineRegime(spy, vix) {
+  const vixNow = vix[vix.length - 1].close;
+  const ma100 = calcMA(spy, STRATEGY_CONFIG.maPeriod);
+  const spyNow = spy[spy.length - 1].close;
+  const spyAboveMA = ma100 ? ((spyNow / ma100) - 1) * 100 : 0;
+
+  let regime, factor;
+  if (vixNow >= STRATEGY_CONFIG.bearTh) { regime = 'PANIC'; factor = STRATEGY_CONFIG.TQQQ.maxX; }
+  else if (vixNow >= STRATEGY_CONFIG.panicTh) { regime = 'BEAR'; factor = STRATEGY_CONFIG.TQQQ.panicX; }
+  else if (spyAboveMA < 0) { regime = 'NEUTRAL'; factor = 1.0; }
+  else { regime = 'BULL'; factor = 1.0; }
+
+  return { regime, factor, vixNow, spyAboveMA, ma100 };
+}
+
+// ============================================================
+// 3. 시트 데이터 fetch (CSV)
+// ============================================================
+
+async function fetchSheet(tabName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${tabName}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Sheet fetch failed: ${tabName}`);
+  const text = await res.text();
+  return parseCSV(text);
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = parseCSVLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const fields = parseCSVLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = fields[i] || ''; });
+    return obj;
+  });
+}
+
+function parseCSVLine(line) {
+  const out = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (ch === ',' && !inQuote) {
+      out.push(cur); cur = '';
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+function parseTrades(rows) {
+  return rows.filter(r => r.slot_id && r.entry_price).map(r => ({
+    slot_id: parseInt(r.slot_id),
+    cycle: parseInt(r.cycle) || 1,
+    entry_date: r.entry_date,
+    entry_price: parseFloat(r.entry_price),
+    qty: parseFloat(r.qty),
+    entry_amount: parseFloat(r.entry_amount) || (parseFloat(r.entry_price) * parseFloat(r.qty)),
+    entry_regime: r.entry_regime || '',
+    entry_factor: parseFloat(r.entry_factor) || 1.0,
+    exit_date: r.exit_date || '',
+    exit_price: parseFloat(r.exit_price) || null,
+    exit_reason: r.exit_reason || '',
+    return_pct: parseFloat(r.return_pct) || null,
+    pnl: parseFloat(r.pnl) || null,
+    status: (r.status || '').toUpperCase(),
+    note: r.note || '',
+  }));
+}
+
+// ============================================================
+// 4. 슬롯 상태 계산
+// ============================================================
+
+function classifySlot(returnPct, tpThreshold) {
+  if (returnPct == null) return 'empty';
+  if (returnPct >= tpThreshold) return 'tp-ready';
+  if (returnPct >= 2) return 'gain';
+  if (returnPct >= -2) return 'flat';
+  if (returnPct >= -10) return 'loss';
+  return 'loss-deep';
+}
+
+function buildSlotMap(trades, currentPrice, ticker) {
+  const cfg = STRATEGY_CONFIG[ticker];
+  const N = cfg.N;
+  const tpTh = ticker === 'TQQQ' ? cfg.TP1 : cfg.TP;
+
+  const latestCycle = trades.reduce((m, t) => Math.max(m, t.cycle), 1);
+  const cycleTrades = trades.filter(t => t.cycle === latestCycle);
+
+  const slots = [];
+  for (let i = 1; i <= N; i++) {
+    const t = cycleTrades.find(tr => tr.slot_id === i && tr.status === 'OPEN');
+    if (!t) {
+      slots.push({ slot_id: i, status: 'empty', returnPct: null, label: '·', title: '' });
+    } else {
+      const ret = ((currentPrice / t.entry_price) - 1) * 100;
+      const cls = classifySlot(ret, tpTh);
+      slots.push({
+        slot_id: i, status: cls, returnPct: ret,
+        label: ret >= 0 ? `+${Math.round(ret)}` : `${Math.round(ret)}`,
+        title: `Slot ${i} · entry $${t.entry_price.toFixed(2)} · now $${currentPrice.toFixed(2)} · ${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%`,
+      });
+    }
+  }
+  const active = slots.filter(s => s.status !== 'empty').length;
+  const tpReady = slots.filter(s => s.status === 'tp-ready').length;
+  return { slots, active, tpReady, N };
+}
+
+// ============================================================
+// 5. Equity curve 계산 (Strategy + B&H)
+// ============================================================
+
+function buildEquityCurves(tqqqTrades, soxlTrades, tqqqPrices, soxlPrices) {
+  const allTrades = [...tqqqTrades, ...soxlTrades].filter(t => t.entry_date);
+  if (allTrades.length === 0) {
+    return { strategy: [], bh: [], strategyReturn: 0, bhReturn: 0, daysSinceStart: 0 };
+  }
+
+  const startDate = allTrades.reduce((min, t) => {
+    const d = new Date(t.entry_date);
+    return (!min || d < min) ? d : min;
+  }, null);
+
+  const today = NOW_KST();
+  const todayKey = today.toISOString().slice(0, 10);
+  const startKey = startDate.toISOString().slice(0, 10);
+
+  const tqqqMap = new Map();
+  tqqqPrices.forEach(p => tqqqMap.set(p.date.toISOString().slice(0, 10), p.close));
+  const soxlMap = new Map();
+  soxlPrices.forEach(p => soxlMap.set(p.date.toISOString().slice(0, 10), p.close));
+
+  const dates = [];
+  let cur = new Date(startDate);
+  while (cur <= today) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  let totalDeployed = 0;
+  allTrades.forEach(t => { totalDeployed += t.entry_amount; });
+  if (totalDeployed === 0) return { strategy: [], bh: [], strategyReturn: 0, bhReturn: 0, daysSinceStart: 0 };
+
+  const startTQQQ = tqqqMap.get(startKey) || (() => {
+    const sorted = [...tqqqMap.entries()].sort();
+    const found = sorted.find(([d]) => d >= startKey);
+    return found ? found[1] : null;
+  })();
+  const startSOXL = soxlMap.get(startKey) || (() => {
+    const sorted = [...soxlMap.entries()].sort();
+    const found = sorted.find(([d]) => d >= startKey);
+    return found ? found[1] : null;
+  })();
+
+  const strategyCurve = [], bhCurve = [];
+  let lastTQQQ = startTQQQ, lastSOXL = startSOXL;
+
+  for (const dateKey of dates) {
+    const tPrice = tqqqMap.get(dateKey) || lastTQQQ;
+    const sPrice = soxlMap.get(dateKey) || lastSOXL;
+    if (tPrice) lastTQQQ = tPrice;
+    if (sPrice) lastSOXL = sPrice;
+    if (!tPrice || !sPrice) continue;
+
+    let stratValue = 0;
+    for (const t of tqqqTrades) {
+      if (!t.entry_date || t.entry_date > dateKey) continue;
+      if (t.status === 'CLOSED' && t.exit_date && t.exit_date <= dateKey) {
+        stratValue += t.exit_price * t.qty;
+      } else if (t.status === 'OPEN' || (t.status === 'CLOSED' && t.exit_date > dateKey)) {
+        stratValue += tPrice * t.qty;
+      }
+    }
+    for (const t of soxlTrades) {
+      if (!t.entry_date || t.entry_date > dateKey) continue;
+      if (t.status === 'CLOSED' && t.exit_date && t.exit_date <= dateKey) {
+        stratValue += t.exit_price * t.qty;
+      } else if (t.status === 'OPEN' || (t.status === 'CLOSED' && t.exit_date > dateKey)) {
+        stratValue += sPrice * t.qty;
+      }
+    }
+    let invested = 0;
+    for (const t of [...tqqqTrades, ...soxlTrades]) {
+      if (t.entry_date && t.entry_date <= dateKey) invested += t.entry_amount;
+    }
+    const stratPct = invested > 0 ? ((stratValue / invested) - 1) * 100 : 0;
+
+    const tRet = (tPrice / startTQQQ) - 1;
+    const sRet = (sPrice / startSOXL) - 1;
+    const bhPct = ((tRet + sRet) / 2) * 100;
+
+    strategyCurve.push({ date: dateKey, value: 100 * (1 + stratPct / 100) });
+    bhCurve.push({ date: dateKey, value: 100 * (1 + bhPct / 100) });
+  }
+
+  const stratReturn = strategyCurve.length ? strategyCurve[strategyCurve.length - 1].value - 100 : 0;
+  const bhReturn = bhCurve.length ? bhCurve[bhCurve.length - 1].value - 100 : 0;
+  const daysSinceStart = Math.floor((today - startDate) / 86400000);
+
+  return { strategy: strategyCurve, bh: bhCurve, strategyReturn: stratReturn, bhReturn: bhReturn, daysSinceStart };
+}
+
+// ============================================================
+// 6. SVG path 생성 (5-A ZOOM 방식)
+// ============================================================
+
+function buildSVGPaths(strategyCurve, bhCurve) {
+  if (strategyCurve.length === 0) return null;
+  const allValues = [...strategyCurve.map(p => p.value), ...bhCurve.map(p => p.value)];
+  let mn = Math.min(...allValues), mx = Math.max(...allValues);
+  if (mx - mn < 1) { mn -= 2; mx += 2; }
+  const padding = (mx - mn) * 0.15;
+  mn -= padding; mx += padding;
+
+  const W = 1000, H = 300, TOP = 50, BOTTOM = 250;
+  const toY = v => BOTTOM - ((v - mn) / (mx - mn)) * (BOTTOM - TOP);
+  const N = strategyCurve.length;
+  const toX = i => N === 1 ? W / 2 : (i / (N - 1)) * W;
+
+  const stratPts = strategyCurve.map((p, i) => `${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`);
+  const bhPts = bhCurve.map((p, i) => `${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`);
+
+  const stratLine = 'M' + stratPts.join(' L');
+  const stratArea = stratLine + ` L${toX(N - 1).toFixed(1)},${H} L${toX(0).toFixed(1)},${H} Z`;
+  const bhLine = 'M' + bhPts.join(' L');
+
+  return { stratLine, stratArea, bhLine };
+}
+
+// ============================================================
+// 7. 히스토그램 데이터
+// ============================================================
+
+function buildHistogram(trades) {
+  const closed = trades.filter(t => t.status === 'CLOSED' && t.return_pct != null);
+  const bins = [
+    { range: [-100, -20], label: '−30', cls: 'loss-deep', count: 0 },
+    { range: [-20, -10], label: '−20', cls: 'loss-deep', count: 0 },
+    { range: [-10, 0], label: '−10', cls: 'loss', count: 0 },
+    { range: [0, 5], label: '0', cls: 'flat', count: 0 },
+    { range: [5, 10], label: '+5', cls: 'gain-low', count: 0 },
+    { range: [10, 15], label: '+10', cls: 'gain-tp', count: 0 },
+    { range: [15, 25], label: '+15', cls: 'gain-tp', count: 0 },
+    { range: [25, 1000], label: '+25', cls: 'gain-big', count: 0 },
+  ];
+  closed.forEach(t => {
+    const r = t.return_pct;
+    for (const b of bins) { if (r >= b.range[0] && r < b.range[1]) { b.count++; break; } }
+  });
+  const wins = closed.filter(t => t.return_pct > 0).length;
+  const losses = closed.filter(t => t.return_pct <= 0).length;
+  const total = closed.length;
+  const winRate = total > 0 ? (wins / total) * 100 : 0;
+  const maxCount = Math.max(...bins.map(b => b.count), 1);
+  return { bins, wins, losses, total, winRate, maxCount };
+}
+
+// ============================================================
+// 8. DOM 렌더링
+// ============================================================
+
+function renderClock() {
+  const now = NOW_KST();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const dateStr = `${months[now.getMonth()]} ${now.getDate()} · ${now.getFullYear()} · KST`;
+  const el = document.querySelector('.clock');
+  if (el) el.innerHTML = `<b>${hh}:${mm}:${ss}</b>${dateStr}`;
+}
+
+function renderStatus(regimeData, totalCash, slotsTQQQ, slotsSOXL) {
+  const { regime, vixNow, spyAboveMA } = regimeData;
+  const stats = document.querySelectorAll('.status .stat');
+  if (stats[0]) stats[0].querySelector('.v').textContent = regime;
+  if (stats[1]) stats[1].querySelector('.v').textContent = vixNow.toFixed(2);
+  if (stats[2]) {
+    const sign = spyAboveMA >= 0 ? '+' : '';
+    stats[2].querySelector('.v').textContent = `${sign}${spyAboveMA.toFixed(2)}%`;
+  }
+  if (stats[3]) stats[3].querySelector('.v').textContent = `$${totalCash.toLocaleString()}`;
+  if (stats[4]) stats[4].querySelector('.v').textContent = `${slotsTQQQ}·${slotsSOXL}`;
+}
+
+function renderHero(equity, daysSinceStart, regimeData, livePrices) {
+  const verdict = document.querySelector('.hero .verdict');
+  const desc = document.querySelector('.hero .desc');
+  const legend = document.querySelector('.hero-legend');
+  const modeBadge = document.querySelector('.mode-badge');
+  const axis = document.querySelector('.hero-axis');
+  const chart = document.querySelector('.hero-chart svg');
+
+  const factor = regimeData.factor;
+  const factorText = factor === 1.0 ? '1.0×' : `${factor}×`;
+  if (verdict) verdict.textContent = `Buy ${factorText}`;
+
+  let descText;
+  if (regimeData.regime === 'PANIC') descText = `PANIC regime · deploy ${factorText} aggressively`;
+  else if (regimeData.regime === 'BEAR') descText = `BEAR regime · careful · deploy ${factorText}`;
+  else descText = `${regimeData.regime} · standard split · no alarms`;
+  if (desc) desc.textContent = descText;
+
+  if (legend) {
+    const stratClass = equity.strategyReturn >= 0 ? 'win' : 'loss';
+    const bhClass = equity.bhReturn >= 0 ? 'win' : 'loss';
+    const stratSign = equity.strategyReturn >= 0 ? '+' : '';
+    const bhSign = equity.bhReturn >= 0 ? '+' : '';
+    legend.innerHTML = `
+      <div class="hero-legend-item"><span class="swatch bh"></span>B&H 50/50 <span class="return-badge ${bhClass}">${bhSign}${equity.bhReturn.toFixed(1)}%</span></div>
+      <div class="hero-legend-item"><span class="swatch eq"></span>STRATEGY <span class="return-badge ${stratClass}">${stratSign}${equity.strategyReturn.toFixed(1)}%</span></div>
+    `;
+  }
+
+  if (modeBadge) {
+    modeBadge.innerHTML = `
+      <span class="seg live"><span class="dot"></span>LIVE D+${daysSinceStart}</span>
+      <span class="sep">·</span>
+      <span style="color:rgba(255,255,255,.5)">${daysSinceStart}d window</span>
+    `;
+  }
+
+  if (axis && equity.strategy.length > 0) {
+    const startDate = equity.strategy[0].date;
+    const [y, m, d] = startDate.split('-');
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    axis.innerHTML = `
+      <span>D−${daysSinceStart} · ${months[parseInt(m) - 1]} ${parseInt(d)}</span>
+      <span>D · today</span>
+    `;
+  }
+
+  if (chart && equity.strategy.length > 0) {
+    const paths = buildSVGPaths(equity.strategy, equity.bh);
+    if (paths) {
+      const eqArea = chart.querySelector('path[fill*="eqGrad"]');
+      const eqLine = chart.querySelectorAll('path[stroke="#00ff88"]');
+      const bhLine = chart.querySelector('path[stroke-dasharray]');
+      if (eqArea) eqArea.setAttribute('d', paths.stratArea);
+      eqLine.forEach(p => {
+        if (!p.getAttribute('fill') || p.getAttribute('fill') === 'none') p.setAttribute('d', paths.stratLine);
+      });
+      if (bhLine) bhLine.setAttribute('d', paths.bhLine);
+    }
+  }
+}
+
+function renderPanels(currentTQQQ, currentSOXL, regimeData) {
+  const factor = regimeData.factor;
+  const tqqqDeploy = 500 * factor;
+  const soxlDeploy = 333.33 * factor;
+  const panels = document.querySelectorAll('.panel');
+  if (panels[0]) {
+    const num = panels[0].querySelector('.deploy .num');
+    if (num) num.textContent = `$${tqqqDeploy.toFixed(2)}`;
+  }
+  if (panels[1]) {
+    const num = panels[1].querySelector('.deploy .num');
+    if (num) num.textContent = `$${soxlDeploy.toFixed(2)}`;
+  }
+}
+
+function renderSlotMap(containerSel, slotData) {
+  const container = document.querySelector(containerSel);
+  if (!container) return;
+  const slotsEl = container.querySelector('.slots');
+  const stats = container.querySelector('.slot-header .stats');
+  if (slotsEl) {
+    slotsEl.innerHTML = slotData.slots.map(s =>
+      `<div class="slot ${s.status}" title="${s.title}">${s.label}</div>`
+    ).join('');
+  }
+  if (stats) {
+    stats.innerHTML = `
+      <span><b>${slotData.active}</b>active</span>
+      <span class="ready"><b>${slotData.tpReady}</b>tp ready</span>
+    `;
+  }
+}
+
+function renderHistogram(containerSel, histData, ticker) {
+  const container = document.querySelector(containerSel);
+  if (!container) return;
+  const summary = container.querySelector('.histo-summary');
+  if (summary) {
+    summary.innerHTML = `
+      <div class="item win"><span>WINS</span><span class="num">${histData.wins}</span></div>
+      <div class="item loss"><span>LOSSES</span><span class="num">${histData.losses}</span></div>
+      <div class="item"><span>WIN RATE</span><span class="num">${histData.winRate.toFixed(1)}%</span></div>
+    `;
+  }
+  const titleLabel = container.querySelector('.histo-header .title .label');
+  if (titleLabel) titleLabel.textContent = `realized P&L · ${histData.total} closed cycle${histData.total !== 1 ? 's' : ''}`;
+  const bars = container.querySelector('.histo-bars');
+  if (bars) {
+    bars.innerHTML = histData.bins.map(b => {
+      const heightPct = (b.count / histData.maxCount) * 100;
+      const countLabel = b.count > 0 ? `<span class="count-label">${b.count}</span>` : '';
+      return `<div class="histo-bar ${b.cls}">
+        ${countLabel}
+        <div class="bar" style="height:${heightPct}%"></div>
+        <span class="x-label">${b.label}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderFooter(daysSinceStart) {
+  const foot = document.querySelector('.foot');
+  if (foot) {
+    foot.innerHTML = `
+      <span>KEEL · TQQQ N=20 · SOXL N=30 · 3-period <b>VALIDATED</b></span>
+      <span>live · <b>D+${daysSinceStart}</b></span>
+      <span>op · <b>JUNGHOO</b></span>
+    `;
+  }
+}
+
+// ============================================================
+// 9. Main
+// ============================================================
+
+async function loadDashboard() {
+  try {
+    renderClock();
+    setInterval(renderClock, 1000);
+
+    const [spy, vix, tqqqPrices, soxlPrices, tqqqRows, soxlRows] = await Promise.all([
+      fetchYahoo('SPY', '1y'),
+      fetchYahoo('^VIX', '6mo'),
+      fetchYahoo('TQQQ', '6mo'),
+      fetchYahoo('SOXL', '6mo'),
+      fetchSheet('TQQQ').catch(() => []),
+      fetchSheet('SOXL').catch(() => []),
+    ]);
+
+    const tqqqTrades = parseTrades(tqqqRows);
+    const soxlTrades = parseTrades(soxlRows);
+
+    const regimeData = determineRegime(spy, vix);
+    const currentTQQQ = tqqqPrices[tqqqPrices.length - 1].close;
+    const currentSOXL = soxlPrices[soxlPrices.length - 1].close;
+
+    const slotsTQQQ = buildSlotMap(tqqqTrades, currentTQQQ, 'TQQQ');
+    const slotsSOXL = buildSlotMap(soxlTrades, currentSOXL, 'SOXL');
+
+    const totalCash = 0;
+
+    const equity = buildEquityCurves(tqqqTrades, soxlTrades, tqqqPrices, soxlPrices);
+    const histTQQQ = buildHistogram(tqqqTrades);
+    const histSOXL = buildHistogram(soxlTrades);
+
+    renderStatus(regimeData, totalCash, slotsTQQQ.active, slotsSOXL.active);
+    renderHero(equity, equity.daysSinceStart, regimeData, { tqqq: currentTQQQ, soxl: currentSOXL });
+    renderPanels(currentTQQQ, currentSOXL, regimeData);
+    renderSlotMap('.slot-card.tqqq', slotsTQQQ);
+    renderSlotMap('.slot-card.soxl', slotsSOXL);
+    renderHistogram('.histo-card.tqqq', histTQQQ, 'TQQQ');
+    renderHistogram('.histo-card.soxl', histSOXL, 'SOXL');
+    renderFooter(equity.daysSinceStart);
+
+    console.log('KEEL loaded', { regimeData, slotsTQQQ, slotsSOXL, equity });
+  } catch (err) {
+    console.error('KEEL load error:', err);
+    const verdict = document.querySelector('.hero .verdict');
+    if (verdict) verdict.textContent = 'ERROR';
+    const desc = document.querySelector('.hero .desc');
+    if (desc) desc.textContent = err.message || 'failed to load data';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);
+
+</script>
+</body>
+</html>
