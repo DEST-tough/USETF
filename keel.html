@@ -727,24 +727,38 @@ function parseCSVLine(line) {
   return out;
 }
 
+function parseNum(v) {
+  if (v == null || v === '') return null;
+  // Remove $, commas, %, x, spaces, whitespace
+  const cleaned = String(v).replace(/[$,%x\s]/gi, '').trim();
+  if (cleaned === '' || cleaned === '-') return null;
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? null : n;
+}
+
 function parseTrades(rows) {
-  return rows.filter(r => r.slot_id && r.entry_price).map(r => ({
-    slot_id: parseInt(r.slot_id),
-    cycle: parseInt(r.cycle) || 1,
-    entry_date: r.entry_date,
-    entry_price: parseFloat(r.entry_price),
-    qty: parseFloat(r.qty),
-    entry_amount: parseFloat(r.entry_amount) || (parseFloat(r.entry_price) * parseFloat(r.qty)),
-    entry_regime: r.entry_regime || '',
-    entry_factor: parseFloat(r.entry_factor) || 1.0,
-    exit_date: r.exit_date || '',
-    exit_price: parseFloat(r.exit_price) || null,
-    exit_reason: r.exit_reason || '',
-    return_pct: parseFloat(r.return_pct) || null,
-    pnl: parseFloat(r.pnl) || null,
-    status: (r.status || '').toUpperCase(),
-    note: r.note || '',
-  }));
+  return rows.filter(r => r.slot_id && r.entry_price).map(r => {
+    const entryPrice = parseNum(r.entry_price);
+    const qty = parseNum(r.qty);
+    const entryAmount = parseNum(r.entry_amount);
+    return {
+      slot_id: parseInt(r.slot_id),
+      cycle: parseInt(r.cycle) || 1,
+      entry_date: r.entry_date,
+      entry_price: entryPrice,
+      qty: qty,
+      entry_amount: entryAmount != null ? entryAmount : (entryPrice && qty ? entryPrice * qty : 0),
+      entry_regime: r.entry_regime || '',
+      entry_factor: parseNum(r.entry_factor) || 1.0,
+      exit_date: r.exit_date || '',
+      exit_price: parseNum(r.exit_price),
+      exit_reason: r.exit_reason || '',
+      return_pct: parseNum(r.return_pct),
+      pnl: parseNum(r.pnl),
+      status: (r.status || '').toUpperCase(),
+      note: r.note || '',
+    };
+  });
 }
 
 // ============================================================
